@@ -23,27 +23,28 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "usb_main.h"
 #include "suspend.h"
 #include "serial_link/system/driver.h"
+#include "chibios.h"
+
+static host_driver_configuration_t driver_configuration = {
+    .num_drivers = 2,
+	.connection_delay = 50,
+	.connection_timeout = 0,
+	.try_connect_all = false,
+    .drivers = {
+        &chibios_usb_driver,
+        &serial_link_driver,
+    }
+};
+
+host_driver_configuration_t* hook_get_driver_configuration(void) {
+    return &driver_configuration;
+}
 
 void hook_early_init(void) {
-    init_serial_link();
     visualizer_init();
 }
 
-host_driver_t* hook_keyboard_connect(host_driver_t* default_driver) {
-    while (true) {
-        if(USB_DRIVER.state == USB_ACTIVE) {
-            return default_driver;
-        }
-        if(is_serial_link_connected()) {
-            return get_serial_link_driver();
-        }
-        serial_link_update();
-        chThdSleepMilliseconds(50);
-    }
-}
-
 void hook_keyboard_loop(void) {
-    serial_link_update();
     visualizer_update(default_layer_state, layer_state, host_keyboard_leds());
 }
 
@@ -56,13 +57,8 @@ void hook_usb_wakeup(void) {
 }
 
 void hook_usb_suspend_loop(void) {
-    serial_link_update();
     visualizer_update(default_layer_state, layer_state, host_keyboard_leds());
     /* Do this in the suspended state */
     suspend_power_down(); // on AVR this deep sleeps for 15ms
-    /* Remote wakeup */
-    if((USB_DRIVER.status & 2) && suspend_wakeup_condition()) {
-        send_remote_wakeup(&USB_DRIVER);
-    }
 }
 
