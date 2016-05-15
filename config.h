@@ -54,6 +54,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /* Keymap for Infiity prototype */
 #define INFINITY_PROTOTYPE
 
+#define SERIAL_LINK_BAUD 562500
+#define SERIAL_LINK_THREAD_PRIORITY (NORMALPRIO - 1)
+#define VISUALIZER_THREAD_PRIORITY (NORMALPRIO - 2)
 
 /*
  * Feature disable options

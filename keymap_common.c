@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "keymap_common.h"
-#include "serial_link/system/driver.h"
+#include "serial_link/system/serial_link.h"
 
 
 /* translates key to keycode */

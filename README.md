@@ -1,6 +1,5 @@
 TMK/chibios for Input Club Infinity Ergodox
 ===========================================
-
 This is an unofficial keyboard firmware for Infinity Ergodox. 
 
 [http://input.club/devices/infinity-ergodox](http://input.club/devices/infinity-ergodox)
@@ -13,15 +12,22 @@ News and important information
 ------------------------------
 **Always read this section every time you pull a new version**
 
-**10.4.2016**
+**15-May-2015**
+
+* A [bug](https://github.com/fredizzimo/infinity_ergodox/issues/9) that corrupts the LCD and LCD backlight, after the keyboard has been on for a while has been fixed. It's strongly recommended to upgrade.
+* It's now possible to specify that USB cable to the computer is connected to the right half. See the "Physical connection" section for more information.
+
+**10-Apr-2016**
 
 * The location of most submodules have moved to my own forks. Therefore you need to run `git submodule sync --recursive` before doing `git submodule update --init --recursive`
 
 Physical connection
 -------------------
-Connect the left half to the computer, and connect a link cable between the two halves.
+Connect the **left** half to the computer, and connect a link cable between the two halves.
 
-The firmware does currently not work when chaining several keyboards together. So you are limited to a single keyboard consisting of a left hand plus a right hand. Another limitation is that you have to connect the left hand to the computer, and the right hand to the left one. Both of these limitations can quite easily be fixed in the future. However I can't test the chaining myself, so I need some help, open a ticket if you are interested.
+If you want to connect the **right** half instead of the left one to the computer, you need to add the following to the end of the make command. `MASTER=right`. You need to add this for all the make commands that type, so to program the keyboard, the following command should be used `make program MASTER=right`. For consistency, you can also specify left, but it's the default so therfore it's not needed. Furthermore, you can edit the makefile itself, so that you don't need to type it all the time, but remember to not send pull request with that option on!
+
+The firmware does currently not work when chaining several keyboards together. So you are limited to a single keyboard consisting of a left hand plus a right hand. This limitation can quite easily be fixed in the future. However I can't test the chaining myself, so I need some help, open a ticket if you are interested.
 
 Git notes
 ---------
@@ -61,9 +67,9 @@ In order to compile the firmware you need:
 
 Build
 -----
-Just run  
-$ make  
-to build the everything.
+Just run `$ make [makefile options]` to build the everything.
+
+You can override some makefile variables by specifying options, for example if you can type `make MASTER=right` if you want to connect the right hand keyboard to the computer instead of the left one. Some options related to keyboard features and debug can also be specified, refer to the official [TMK build documentation](https://github.com/fredizzimo/tmk_core/blob/master/doc/build.md) for more information.
 
 Upload
 ------
@@ -73,7 +79,9 @@ The default layout has that button mapped on layer 2(keyboard functions).
 
 When the keyboard is in bootloader mode, and the LCD is red with no text, you can run this command.
 
-$ make program
+$ make program [makefile options]
+
+Make sure you specify the exact same options as for the build command.
 
 For simple layout updates, you only need to flash the master(left) half. But each time there's a new firmware version or if you want to make some visualization changes, you need to flash them both.
 

@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "ch.h"
 #include "hal.h"
-#include "serial_link/system/driver.h"
+#include "serial_link/system/serial_link.h"
 
 void init_serial_link_hal(void) {
     PORTA->PCR[1] = PORTx_PCRn_PE | PORTx_PCRn_PS | PORTx_PCRn_PFE | PORTx_PCRn_MUX(2);

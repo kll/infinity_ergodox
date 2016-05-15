@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "hook.h"
 #include "usb_main.h"
 #include "suspend.h"
-#include "serial_link/system/driver.h"
+#include "serial_link/system/serial_link.h"
 
 void hook_early_init(void) {
     init_serial_link();

@@ -34,7 +34,7 @@
 
 #define GDISP_FLG_NEEDFLUSH			(GDISP_FLG_DRIVER<<0)
 
-#include "drivers/gdisp/ST7565ergodox/st7565.h"
+#include "drivers/gdisp/st7565ergodox/st7565.h"
 
 /*===========================================================================*/
 /* Driver config defaults for backward compatibility.               	     */

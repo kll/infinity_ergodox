@@ -99,6 +99,7 @@ else
 # These options are incompatible with the visualizer
 STATUS_LED_ENABLE = yes # Enable CAPS LOCK display for the LCD screen
 endif
+MASTER = left
 
 
 ifdef LCD_ENABLE
@@ -117,7 +118,14 @@ ifdef VISUALIZER_ENABLE
 include $(VISUALIZER_DIR)/visualizer.mk
 endif
 
-OPT_DEFS += -DSERIAL_LINK_BAUD=1125000
+ifeq ($(MASTER),right)	
+OPT_DEFS += -DMASTER_IS_ON_RIGHT
+else 
+ifneq ($(MASTER),left)
+$(error MASTER does not have a valid value(left/right))
+endif
+endif
+
 include $(SERIAL_DIR)/serial_link.mk
 
 include $(TMK_DIR)/tool/chibios/common.mk
