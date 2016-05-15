@@ -126,6 +126,8 @@ $(error MASTER does not have a valid value(left/right))
 endif
 endif
 
+OPT_DEFS += -DGFX_USE_OS_CHIBIOS
+
 include $(SERIAL_DIR)/serial_link.mk
 
 include $(TMK_DIR)/tool/chibios/common.mk

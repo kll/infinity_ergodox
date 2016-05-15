@@ -26,7 +26,7 @@
 ///////////////////////////////////////////////////////////////////////////
 // GOS - One of these must be defined, preferably in your Makefile       //
 ///////////////////////////////////////////////////////////////////////////
-#define GFX_USE_OS_CHIBIOS                           TRUE
+//#define GFX_USE_OS_CHIBIOS                           TRUE
 //#define GFX_USE_OS_FREERTOS                          FALSE
 //    #define GFX_FREERTOS_USE_TRACE                   FALSE
 //#define GFX_USE_OS_WIN32                             FALSE
@@ -128,7 +128,9 @@
 
 //#define GDISP_TOTAL_DISPLAYS		                 2
 
+#ifndef EMULATOR
 #define GDISP_DRIVER_LIST                            GDISPVMT_ST7565_ERGODOX, GDISPVMT_IS31FL3731C_ERGODOX
+#endif
 
     #ifdef GDISP_DRIVER_LIST
         // For code and speed optimization define as TRUE or FALSE if all controllers have the same capability
