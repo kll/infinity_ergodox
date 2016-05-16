@@ -79,6 +79,8 @@ ARMV = 7
 # The CORTEX_VTOR... is needed only for MCHCK/Infinity KB
 OPT_DEFS = -DCORTEX_VTOR_INIT=0x00002000
 
+OPT_OS = chibios
+
 # Build Options
 #   comment out to disable the options.
 #
@@ -125,8 +127,6 @@ ifneq ($(MASTER),left)
 $(error MASTER does not have a valid value(left/right))
 endif
 endif
-
-OPT_DEFS += -DGFX_USE_OS_CHIBIOS
 
 include $(SERIAL_DIR)/serial_link.mk
 

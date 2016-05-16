@@ -35,6 +35,7 @@ endif
 #LCD_BACKLIGHT_ENABLE = yes
 #LED_ENABLE = yes
 USE_UGFX = yes
+EMULATOR = yes
 
 ##############################################################################################
 # Set these for your project
@@ -49,8 +50,8 @@ LDFLAGS  =
 
 #SRC      =
 #OBJS     =
-DEFS     = -DEMULATOR
-#LIBS     =
+DEFS     = -DEMULATOR $(UDEFS)
+LIBS     = $(ULIBS)
 #INCPATH  =
 #LIBPATH  =
 
@@ -61,5 +62,7 @@ DEFS     = -DEMULATOR
 VISUALIZER_DIR = ./tmk_visualizer
 include $(VISUALIZER_DIR)/visualizer.mk
 
-include $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk
+INCPATH += $(UINCDIR)
+
+#include $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk
 include $(GFXLIB)/tools/gmake_scripts/compiler_gcc.mk
