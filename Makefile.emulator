@@ -30,11 +30,10 @@ endif
 	# See $(GFXLIB)/tools/gmake_scripts/os_win32.mk for the list of variables
 	
 #TMK settings
-#VISUALIZER_ENABLE = yes # Enable to customize the LCD and LEDS
-#LCD_ENABLE = yes
-#LCD_BACKLIGHT_ENABLE = yes
-#LED_ENABLE = yes
-USE_UGFX = yes
+VISUALIZER_ENABLE = yes # Enable to customize the LCD and LEDS
+LCD_ENABLE = yes
+LCD_BACKLIGHT_ENABLE = yes
+LED_ENABLE = yes
 EMULATOR = yes
 
 ##############################################################################################
@@ -43,7 +42,7 @@ EMULATOR = yes
 
 #ARCH     = 
 #SRCFLAGS = -ggdb -O0
-#CFLAGS   = 
+CFLAGS   = -std=gnu99
 #CXXFLAGS = 
 #ASFLAGS  =
 LDFLAGS  = 
@@ -60,6 +59,7 @@ LIBS     = $(ULIBS)
 #
 
 VISUALIZER_DIR = ./tmk_visualizer
+TMK_DIR = tmk_core
 include $(VISUALIZER_DIR)/visualizer.mk
 
 INCPATH += $(UINCDIR)
