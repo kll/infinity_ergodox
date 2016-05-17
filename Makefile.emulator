@@ -17,7 +17,6 @@
 	# See $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk for the list of variables
 	GFXLIB					= ../uGFX
 	GFXBOARD				= Win32
-	GFXDEMO					= modules/gdisp/basics
 	PROJECT				    = ergodox
 
 # ChibiOS settings
@@ -33,7 +32,7 @@ endif
 VISUALIZER_ENABLE = yes # Enable to customize the LCD and LEDS
 LCD_ENABLE = yes
 LCD_BACKLIGHT_ENABLE = yes
-LED_ENABLE = yes
+#LED_ENABLE = yes
 EMULATOR = yes
 
 ##############################################################################################
@@ -41,13 +40,13 @@ EMULATOR = yes
 #
 
 #ARCH     = 
-#SRCFLAGS = -ggdb -O0
+SRCFLAGS = -g -O0
 CFLAGS   = -std=gnu99
 #CXXFLAGS = 
 #ASFLAGS  =
-LDFLAGS  = 
+LDFLAGS  = -g
 
-#SRC      =
+SRC      = emulator_main.c
 #OBJS     =
 DEFS     = -DEMULATOR $(UDEFS)
 LIBS     = $(ULIBS)
