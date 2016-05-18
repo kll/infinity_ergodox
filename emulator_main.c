@@ -18,7 +18,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "gfx.h"
 #include "visualizer.h"
 
+static GDisplay* lcd;
+static GDisplay* led;
+
+GDisplay* get_lcd_display(void) {
+    return lcd;
+}
+
+GDisplay* get_led_display(void) {
+    return led;
+}
+
 int main(void) {
+
+    gfxInit();
+    lcd = gdispPixmapCreate(128, 32);
+    led = gdispPixmapCreate(7, 7);
+    gdispSetDisplay(lcd);
+
     // Initialize and clear the display
     visualizer_init();
 
