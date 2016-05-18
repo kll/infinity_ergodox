@@ -32,7 +32,7 @@ endif
 VISUALIZER_ENABLE = yes # Enable to customize the LCD and LEDS
 LCD_ENABLE = yes
 LCD_BACKLIGHT_ENABLE = yes
-#LED_ENABLE = yes
+LED_ENABLE = yes
 EMULATOR = yes
 
 ##############################################################################################
