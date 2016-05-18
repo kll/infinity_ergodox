@@ -48,3 +48,13 @@ int main(void) {
         gfxSleepMilliseconds(1);
     }
 }
+
+void draw_emulator(void) {
+    gdispSetDisplay(gdispGetDisplay(0));
+    gdispClear(White);
+    gdispBlitArea(10, 10, 128, 32, gdispPixmapGetBits(lcd));
+    gdispBlitArea(10, 200, 7, 7, gdispPixmapGetBits(led));
+    gdispFlush();
+
+    gdispSetDisplay(lcd);
+}
