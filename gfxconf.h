@@ -318,7 +318,7 @@
 ///////////////////////////////////////////////////////////////////////////
 // GMISC                                                                 //
 ///////////////////////////////////////////////////////////////////////////
-#define GFX_USE_GMISC                                FALSE
+#define GFX_USE_GMISC                                TRUE
 
 //#define GMISC_NEED_ARRAYOPS                          FALSE
 //#define GMISC_NEED_FASTTRIG                          FALSE
@@ -326,7 +326,7 @@
 //#define GMISC_NEED_INVSQRT                           FALSE
 //    #define GMISC_INVSQRT_MIXED_ENDIAN               FALSE
 //    #define GMISC_INVSQRT_REAL_SLOW                  FALSE
-//#define GMISC_NEED_MATRIXFLOAT2D                     FALSE
+#define GMISC_NEED_MATRIXFLOAT2D                     TRUE
 //#define GMISC_NEED_MATRIXFIXED2D                     FALSE
 
 #endif /* _GFXCONF_H */
