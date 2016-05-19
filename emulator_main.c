@@ -61,24 +61,23 @@ void draw_emulator(void) {
     gdispSetDisplay(temp);
     gdispClear(HTML2COLOR(0x8B4513));
     point points[] = {
-        {26, 0},
-        {211, 0},
-        {244, 7},
-        {337, 50},
-        {369, 58},
-        {598, 58},
-        {624, 83},
-        {624, 336},
-        {638, 359},
-        {778, 424},
-        {790, 458},
-        {685, 683},
-        {651, 695},
-        {338, 550},
-        {328, 547},
-        {26, 547},
-        {0, 522},
-        {0, 26},
+        {25, 0},
+        {210, 0},
+        {242, 7},
+        {334, 50},
+        {366, 57},
+        {593, 57},
+        {619, 83},
+        {619, 333},
+        {633, 356},
+        {772, 421},
+        {784, 454},
+        {678, 678},
+        {646, 690},
+        {325, 543},
+        {25, 542},
+        {0, 517},
+        {0, 25},
     };
 
     key_t keys[] = {
@@ -128,16 +127,22 @@ void draw_emulator(void) {
          {{633.73f, 604.06f}, 1.0f, 65.0f},
     };
 
+    int keyboard_x = 10;
+    int keyboard_y = 10;
+
 
     // Main keyboard area
-    gdispFillConvexPoly(10, 10, points, sizeof(points) / sizeof(point), HTML2COLOR(0xDADADA));
+    gdispFillConvexPoly(keyboard_x, keyboard_y, points, sizeof(points) / sizeof(point), HTML2COLOR(0xDADADA));
     // The LCD area
-    gdispFillArea(36, 19, 173, 102, Green);
+    int lcd_x = 32 + keyboard_x;
+    int lcd_y = 19 + keyboard_y;
+
+    gdispFillArea(lcd_x, lcd_y, 173, 102, Green);
     // The black border in the LCD screen
-    gdispDrawBox(40, 23, 165, 67, Black);
-    gdispDrawBox(41, 24, 163, 65, Black);
+    gdispDrawBox(4 + lcd_x, 4 + lcd_y, 165, 67, Black);
+    gdispDrawBox(5 + lcd_x, 5 + lcd_y, 163, 65, Black);
     // The black area at the bottom of the LCD
-    gdispFillArea(40, 91, 165, 28, Black);
+    gdispFillArea(4 + lcd_x, 72 + lcd_y, 165, 28, Black);
 
     const int num_keys = sizeof(keys) / sizeof(key_t);
 
@@ -150,8 +155,8 @@ void draw_emulator(void) {
         MatrixFloat2D rot;
         gmiscMatrixFloat2DApplyRotation(&rot, NULL, keys[i].rot);
 
-        int mid_x = keys[i].pos.x;
-        int mid_y = keys[i].pos.y;
+        int mid_x = keys[i].pos.x + keyboard_x;
+        int mid_y = keys[i].pos.y + keyboard_y;
 
         float width = keycap_size  * keys[i].size;
         float height = keycap_size;
@@ -182,7 +187,7 @@ void draw_emulator(void) {
     }
 
     // The actual LCD screen contents
-    gdispBlitArea(58, 38, 128, 32, gdispPixmapGetBits(lcd));
+    gdispBlitArea(23 + lcd_x, 19 + lcd_y, 128, 32, gdispPixmapGetBits(lcd));
     // The leds
     gdispBlitArea(10, 200, 7, 7, gdispPixmapGetBits(led));
 
