@@ -69,7 +69,7 @@
 //#define GDISP_NEED_ELLIPSE                           FALSE
 //#define GDISP_NEED_ARC                               FALSE
 //#define GDISP_NEED_ARCSECTORS                        FALSE
-//#define GDISP_NEED_CONVEX_POLYGON                    FALSE
+#define GDISP_NEED_CONVEX_POLYGON                    TRUE
 //#define GDISP_NEED_SCROLL                            FALSE
 #define GDISP_NEED_PIXELREAD                         TRUE
 #define GDISP_NEED_CONTROL                           TRUE
@@ -130,6 +130,10 @@
 
 #ifndef EMULATOR
 #define GDISP_DRIVER_LIST                            GDISPVMT_ST7565_ERGODOX, GDISPVMT_IS31FL3731C_ERGODOX
+#else
+#define GDISP_PIXELFORMAT                            GDISP_PIXELFORMAT_RGB888
+#define GDISP_SCREEN_WIDTH                           1024
+#define GDISP_SCREEN_HEIGHT                          768
 #endif
 
     #ifdef GDISP_DRIVER_LIST
