@@ -51,6 +51,11 @@ int main(void) {
     }
 }
 
+typedef struct {
+    point pos;
+    float size;
+} key_t;
+
 void draw_emulator(void) {
     gdispSetDisplay(temp);
     gdispClear(HTML2COLOR(0x8B4513));
@@ -74,6 +79,56 @@ void draw_emulator(void) {
         {0, 522},
         {0, 26},
     };
+
+    key_t keys[] = {
+         {{71.12f, 160.85f}, 1.5f},
+         {{166.37f, 160.85f}, 1.0f},
+         {{242.57f, 148.15f}, 1.0f},
+         {{318.77f, 141.8f}, 1.0f},
+         {{394.97f, 148.16f}, 1.0f},
+         {{471.17f, 153.24f}, 1.0f},
+         {{547.37f, 153.24f}, 1.0f},
+
+         {{71.12f, 237.05f}, 1.5f},
+         {{166.37f, 237.05f}, 1.0f},
+         {{242.57f, 224.35f}, 1.0f},
+         {{318.77f, 218.0f}, 1.0f},
+         {{394.97f, 224.36f}, 1.0f},
+         {{471.17f, 229.44f}, 1.0f},
+         {{547.37f, 248.49f}, 1.0f},
+
+         {{71.12f, 313.25f}, 1.5f},
+         {{166.37f, 313.25f}, 1.0f},
+         {{242.57f, 300.55f}, 1.0f},
+         {{318.77f, 294.2f}, 1.0f},
+         {{394.97f, 300.56f}, 1.0f},
+         {{471.17f, 305.44f}, 1.0f},
+
+         {{71.12f, 389.45f}, 1.5f},
+         {{166.37f, 389.45f}, 1.0f},
+         {{242.57f, 376.65f}, 1.0f},
+         {{318.77f, 370.4f}, 1.0f},
+         {{394.97f, 376.76f}, 1.0f},
+         {{471.17f, 381.64f}, 1.0f},
+         {{547.37f, 362.79f}, 1.0f},
+
+         {{90.17f, 465.65f}, 1.0f},
+         {{166.37f, 465.65f}, 1.0f},
+         {{242.57f, 452.85f}, 1.0f},
+         {{318.77f, 446.6f}, 1.0f},
+         {{394.97f, 452.96f}, 1.0f},
+         {{629.09f, 443.73f}, 1.0f},
+         {{698.15f, 477.77f}, 1.0f},
+
+         {{665.94f, 535.0f}, 1.0f},
+
+         {{499.89f, 505.11f}, 2.0f},
+         {{580.78f, 537.32f}, 2.0f},
+         {{633.735f, 604.06f}, 1.0f},
+
+    };
+
+
     // Main keyboard area
     gdispFillConvexPoly(10, 10, points, sizeof(points) / sizeof(point), HTML2COLOR(0xDADADA));
     // The LCD area
@@ -83,6 +138,25 @@ void draw_emulator(void) {
     gdispDrawBox(41, 24, 163, 65, Black);
     // The black area at the bottom of the LCD
     gdispFillArea(40, 91, 165, 28, Black);
+
+    const int num_keys = sizeof(keys) / sizeof(key_t);
+
+    int keycap_size = 73.66f; // 7.25 * 2.54 * 4
+    int keycap_inner_size = 50.8f; // 7.25 * 2.54 * 4
+
+    for (int i=0;i<num_keys;i++) {
+        int mid_x = keys[i].pos.x;
+        int mid_y = keys[i].pos.y;
+        int width = keycap_size  * keys[i].size;
+        int x = mid_x - width / 2;
+        int y = mid_y - keycap_size / 2;
+        gdispFillArea(x, y, width, keycap_size, Black);
+        width = keycap_inner_size  * keys[i].size;
+        x = mid_x - width / 2;
+        y = mid_y - keycap_inner_size / 2;
+        gdispFillArea(x, y, width, keycap_inner_size, HTML2COLOR(0x202020));
+    }
+
     // The actual LCD screen contents
     gdispBlitArea(58, 38, 128, 32, gdispPixmapGetBits(lcd));
     // The leds
