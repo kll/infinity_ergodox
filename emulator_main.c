@@ -57,6 +57,114 @@ typedef struct {
     float rot;
 } key_t;
 
+key_t keys[] = {
+     {{71.12f, 160.85f}, 1.5f, 0.0f},
+     {{166.37f, 160.85f}, 1.0f, 0.0f},
+     {{242.57f, 148.15f}, 1.0f, 0.0f},
+     {{318.77f, 141.8f}, 1.0f, 0.0f},
+     {{394.97f, 148.16f}, 1.0f, 0.0f},
+     {{471.17f, 153.24f}, 1.0f, 0.0f},
+     {{547.37f, 153.24f}, 1.0f, 0.0f},
+
+     {{71.12f, 237.05f}, 1.5f, 0.0f},
+     {{166.37f, 237.05f}, 1.0f, 0.0f},
+     {{242.57f, 224.35f}, 1.0f, 0.0f},
+     {{318.77f, 218.0f}, 1.0f, 0.0f},
+     {{394.97f, 224.36f}, 1.0f, 0.0f},
+     {{471.17f, 229.44f}, 1.0f, 0.0f},
+     {{547.37f, 248.49f}, 1.5f, 90.0f},
+
+     {{71.12f, 313.25f}, 1.5f, 0.0f},
+     {{166.37f, 313.25f}, 1.0f, 0.0f},
+     {{242.57f, 300.55f}, 1.0f, 0.0f},
+     {{318.77f, 294.2f}, 1.0f, 0.0f},
+     {{394.97f, 300.56f}, 1.0f, 0.0f},
+     {{471.17f, 305.44f}, 1.0f, 0.0f},
+
+     {{71.12f, 389.45f}, 1.5f, 0.0f},
+     {{166.37f, 389.45f}, 1.0f, 0.0f},
+     {{242.57f, 376.65f}, 1.0f, 0.0f},
+     {{318.77f, 370.4f}, 1.0f, 0.0f},
+     {{394.97f, 376.76f}, 1.0f, 0.0f},
+     {{471.17f, 381.64f}, 1.0f, 0.0f},
+     {{547.37f, 362.79f}, 1.5f, 90.0f},
+
+     {{90.17f, 465.65f}, 1.0f, 0.0f},
+     {{166.37f, 465.65f}, 1.0f, 0.0f},
+     {{242.57f, 452.85f}, 1.0f, 0.0f},
+     {{318.77f, 446.6f}, 1.0f, 0.0f},
+     {{394.97f, 452.96f}, 1.0f, 0.0f},
+     {{629.09f, 433.73f}, 1.0f, 65.0f},
+     {{698.15f, 465.94f}, 1.0f, 65.0f},
+
+     {{665.94f, 535.0f}, 1.0f, 65.0f},
+
+     {{512.72f, 505.11f}, 2.0f, 65.0f},
+     {{580.78f, 537.32f}, 2.0f, 65.0f},
+     {{633.73f, 604.06f}, 1.0f, 65.0f},
+};
+
+static const int num_keys = sizeof(keys) / sizeof(key_t);
+
+void draw_leds(int keyboard_x, int keyboard_y) {
+    for (int i=0;i<num_keys;i++) {
+        MatrixFloat2D rot;
+        gmiscMatrixFloat2DApplyRotation(&rot, NULL, keys[i].rot);
+        int mid_x = keys[i].pos.x + keyboard_x;
+        int mid_y = keys[i].pos.y + keyboard_y;
+        point points[] = {
+            {0, 20}
+        };
+        gmiscMatrixFloat2DApplyToPoints(points, points, &rot, 5);
+
+        int row = i / 7;
+        int col = i - row * 7;
+        color_t color = gdispGGetPixelColor(led, col, row);
+        gdispFillCircle(points[0].x + mid_x, points[0].y + mid_y, 50, color);
+    }
+}
+
+void draw_keycaps(int keyboard_x, int keyboard_y) {
+    const float keycap_size = 73.66f; // 7.25 * 2.54 * 4
+    const float keycap_inner_size = 50.8f;
+    const float keycap_border = keycap_size - keycap_inner_size;
+
+    for (int i=0;i<num_keys;i++) {
+        MatrixFloat2D rot;
+        gmiscMatrixFloat2DApplyRotation(&rot, NULL, keys[i].rot);
+        int mid_x = keys[i].pos.x + keyboard_x;
+        int mid_y = keys[i].pos.y + keyboard_y;
+
+        float width = keycap_size  * keys[i].size;
+        float height = keycap_size;
+        float half_width = width / 2.0f;
+        float half_height = height / 2.0f;
+        point points[] = {
+            {-half_width, -half_height},
+            {half_width, -half_height},
+            {half_width, half_height},
+            {-half_width, half_height},
+        };
+
+        gmiscMatrixFloat2DApplyToPoints(points, points, &rot, 4);
+
+        gdispFillConvexPoly(mid_x, mid_y, points, 4, Black);
+
+        width -= keycap_border;
+        height -= keycap_border;
+        half_width = width / 2.0f;
+        half_height = height / 2.0f;
+        point points2[] = {
+            {-half_width, -half_height},
+            {half_width, -half_height},
+            {half_width, half_height},
+            {-half_width, half_height}
+        };
+        gmiscMatrixFloat2DApplyToPoints(points2, points2, &rot, 4);
+        gdispFillConvexPoly(mid_x, mid_y, points2, 4, HTML2COLOR(0x202020));
+    }
+}
+
 void draw_emulator(void) {
     gdispSetDisplay(temp);
     gdispClear(HTML2COLOR(0x8B4513));
@@ -79,57 +187,8 @@ void draw_emulator(void) {
         {0, 517},
         {0, 25},
     };
-
-    key_t keys[] = {
-         {{71.12f, 160.85f}, 1.5f, 0.0f},
-         {{166.37f, 160.85f}, 1.0f, 0.0f},
-         {{242.57f, 148.15f}, 1.0f, 0.0f},
-         {{318.77f, 141.8f}, 1.0f, 0.0f},
-         {{394.97f, 148.16f}, 1.0f, 0.0f},
-         {{471.17f, 153.24f}, 1.0f, 0.0f},
-         {{547.37f, 153.24f}, 1.0f, 0.0f},
-
-         {{71.12f, 237.05f}, 1.5f, 0.0f},
-         {{166.37f, 237.05f}, 1.0f, 0.0f},
-         {{242.57f, 224.35f}, 1.0f, 0.0f},
-         {{318.77f, 218.0f}, 1.0f, 0.0f},
-         {{394.97f, 224.36f}, 1.0f, 0.0f},
-         {{471.17f, 229.44f}, 1.0f, 0.0f},
-         {{547.37f, 248.49f}, 1.5f, 90.0f},
-
-         {{71.12f, 313.25f}, 1.5f, 0.0f},
-         {{166.37f, 313.25f}, 1.0f, 0.0f},
-         {{242.57f, 300.55f}, 1.0f, 0.0f},
-         {{318.77f, 294.2f}, 1.0f, 0.0f},
-         {{394.97f, 300.56f}, 1.0f, 0.0f},
-         {{471.17f, 305.44f}, 1.0f, 0.0f},
-
-         {{71.12f, 389.45f}, 1.5f, 0.0f},
-         {{166.37f, 389.45f}, 1.0f, 0.0f},
-         {{242.57f, 376.65f}, 1.0f, 0.0f},
-         {{318.77f, 370.4f}, 1.0f, 0.0f},
-         {{394.97f, 376.76f}, 1.0f, 0.0f},
-         {{471.17f, 381.64f}, 1.0f, 0.0f},
-         {{547.37f, 362.79f}, 1.5f, 90.0f},
-
-         {{90.17f, 465.65f}, 1.0f, 0.0f},
-         {{166.37f, 465.65f}, 1.0f, 0.0f},
-         {{242.57f, 452.85f}, 1.0f, 0.0f},
-         {{318.77f, 446.6f}, 1.0f, 0.0f},
-         {{394.97f, 452.96f}, 1.0f, 0.0f},
-         {{629.09f, 433.73f}, 1.0f, 65.0f},
-         {{698.15f, 465.94f}, 1.0f, 65.0f},
-
-         {{665.94f, 535.0f}, 1.0f, 65.0f},
-
-         {{512.72f, 505.11f}, 2.0f, 65.0f},
-         {{580.78f, 537.32f}, 2.0f, 65.0f},
-         {{633.73f, 604.06f}, 1.0f, 65.0f},
-    };
-
     int keyboard_x = 10;
     int keyboard_y = 10;
-
 
     // Main keyboard area
     gdispFillConvexPoly(keyboard_x, keyboard_y, points, sizeof(points) / sizeof(point), HTML2COLOR(0xDADADA));
@@ -144,52 +203,11 @@ void draw_emulator(void) {
     // The black area at the bottom of the LCD
     gdispFillArea(4 + lcd_x, 72 + lcd_y, 165, 28, Black);
 
-    const int num_keys = sizeof(keys) / sizeof(key_t);
-
-    float keycap_size = 73.66f; // 7.25 * 2.54 * 4
-    float keycap_inner_size = 50.8f;
-    float keycap_border = keycap_size - keycap_inner_size;
-
-
-    for (int i=0;i<num_keys;i++) {
-        MatrixFloat2D rot;
-        gmiscMatrixFloat2DApplyRotation(&rot, NULL, keys[i].rot);
-
-        int mid_x = keys[i].pos.x + keyboard_x;
-        int mid_y = keys[i].pos.y + keyboard_y;
-
-        float width = keycap_size  * keys[i].size;
-        float height = keycap_size;
-        float half_width = width / 2.0f;
-        float half_height = height / 2.0f;
-        point points[] = {
-            {-half_width, -half_height},
-            {half_width, -half_height},
-            {half_width, half_height},
-            {-half_width, half_height}
-        };
-
-        gmiscMatrixFloat2DApplyToPoints(points, points, &rot, 4);
-        gdispFillConvexPoly(mid_x, mid_y, points, 4, Black);
-
-        width -= keycap_border;
-        height -= keycap_border;
-        half_width = width / 2.0f;
-        half_height = height / 2.0f;
-        point points2[] = {
-            {-half_width, -half_height},
-            {half_width, -half_height},
-            {half_width, half_height},
-            {-half_width, half_height}
-        };
-        gmiscMatrixFloat2DApplyToPoints(points2, points2, &rot, 4);
-        gdispFillConvexPoly(mid_x, mid_y, points2, 4, HTML2COLOR(0x202020));
-    }
+    draw_leds(keyboard_x, keyboard_y);
+    draw_keycaps(keyboard_x, keyboard_y);
 
     // The actual LCD screen contents
     gdispBlitArea(23 + lcd_x, 19 + lcd_y, 128, 32, gdispPixmapGetBits(lcd));
-    // The leds
-    gdispBlitArea(10, 200, 7, 7, gdispPixmapGetBits(led));
 
     gdispFlush();
     gdispSetDisplay(gdispGetDisplay(0));
