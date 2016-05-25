@@ -19,6 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "visualizer.h"
 #include <math.h>
 #include <stdio.h>
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+#include <glad/glad.h>
+#pragma GCC diagnostic warning "-Wstrict-prototypes"
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 static GDisplay* lcd;
@@ -27,6 +31,7 @@ static GDisplay* temp;
 static GDisplay* lightmap;
 static font_t font;
 static GLFWwindow* window;
+static GLuint keyboard_shader;
 
 void error_callback(int error, const char* description)
 {
@@ -71,13 +76,85 @@ color_t hslToRgb(float h, float s, float l){
     return RGB2COLOR((int)roundf(r * 255), (int)roundf(g * 255), (int)roundf(b * 255));
 }
 
+void print_status(GLuint id, GLenum type) {
+    GLint result = GL_FALSE;
+    int info_log_length;
+    glGetShaderiv(id, type, &result);
+    glGetShaderiv(id, GL_INFO_LOG_LENGTH, &info_log_length);
+    if ( info_log_length > 0 ){
+        char* error_message = malloc(info_log_length + 1);
+        glGetShaderInfoLog(id, info_log_length, NULL, error_message);
+        printf("%s\n", error_message);
+    }
+}
+
+GLuint load_shader(const char* path) {
+    FILE* f = fopen( path, "r");
+    fseek( f, 0, SEEK_END );
+    int filesize = ftell( f );
+    rewind( f );
+    char* buffer = (char*)malloc(filesize+1);
+    fread(buffer, 1, filesize, f);
+    buffer[filesize] = '\0';
+    fclose(f);
+
+    GLenum type = 0;
+    if (strstr(path, "vertexshader")) {
+       type = GL_VERTEX_SHADER;
+    }
+    else if(strstr(path, "fragmentshader")) {
+        type = GL_FRAGMENT_SHADER;
+    }
+    GLuint id = glCreateShader(type);
+    glShaderSource(id, 1, (const char**)&buffer, NULL);
+    glCompileShader(id);
+
+    print_status(id, GL_COMPILE_STATUS);
+
+    free(buffer);
+    // Check Vertex Shader
+
+    return id;
+}
+
+GLuint load_program(const char* vertex_shader, const char* fragment_shader) {
+    GLuint vertex_shader_id = load_shader(vertex_shader);
+    GLuint fragment_shader_id = load_shader(fragment_shader);
+    GLuint program_id = glCreateProgram();
+    glAttachShader(program_id, vertex_shader_id);
+    glAttachShader(program_id, fragment_shader_id);
+    glLinkProgram(program_id);
+    print_status(program_id, GL_LINK_STATUS);
+    glDetachShader(program_id, vertex_shader_id);
+    glDetachShader(program_id, fragment_shader_id);
+
+    glDeleteShader(vertex_shader_id);
+    glDeleteShader(fragment_shader_id);
+
+    return program_id;
+}
+
 
 int main(void) {
     glfwSetErrorCallback(error_callback);
     if (!glfwInit())
         exit(EXIT_FAILURE);
+    glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     window = glfwCreateWindow(GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT,
             "Ergodox Emulator", NULL, NULL);
+    if(!window) {
+        exit(EXIT_FAILURE);
+    }
+    glfwMakeContextCurrent(window);
+    if(!gladLoadGL()) {
+        exit(EXIT_FAILURE);
+    };
+    printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
+    keyboard_shader=load_program("keyboard.vertexshader", "keyboard.fragmentshader");
+
+    glfwMakeContextCurrent(NULL);
 
     gfxInit();
     lcd = gdispPixmapCreate(128, 32);
@@ -332,6 +409,7 @@ void draw_emulator(void) {
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
     }
+    glUseProgram(keyboard_shader);
 
     gdispSetDisplay(temp);
     glClearColor(0x8B / 255.0f, 0x45 / 255.0f, 0x13 / 255.0f, 0.0f);

@@ -44,16 +44,16 @@ EMULATOR = yes
 #
 
 #ARCH     = 
-SRCFLAGS = -g -O0
+SRCFLAGS = -g -O0 
 CFLAGS   = -std=gnu99
 #CXXFLAGS = 
 #ASFLAGS  =
 LDFLAGS  = -g
-SRC      = emulator_main.c
+SRC      = emulator_main.c glad/src/glad.c
 #OBJS     =
-DEFS     = -DEMULATOR $(UDEFS)
-LIBS     = $(ULIBS) glfw3 gdi32 opengl32
-INCPATH  = $(GLFW_DIR)/include
+DEFS     = -DEMULATOR $(UDEFS) -D_WIN32
+LIBS     = $(ULIBS) glfw3 gdi32 opengl32 
+INCPATH  = $(GLFW_DIR)/include glad/include
 LIBPATH  = $(GLFW_DIR)/src
 
 ##############################################################################################
@@ -65,6 +65,17 @@ TMK_DIR = tmk_core
 include $(VISUALIZER_DIR)/visualizer.mk
 
 INCPATH += $(UINCDIR)
+
+all: exe shaders
+
+
+SRCSHADERS = $(wildcard *.*shader)
+DSTSHADERS := $(patsubst %, $(BUILDDIR)/%, $(SRCSHADERS))
+
+shaders: $(DSTSHADERS)
+
+$(BUILDDIR)/%shader : %shader
+	cp -f $< $@
 
 #include $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk
 include $(GFXLIB)/tools/gmake_scripts/compiler_gcc.mk
