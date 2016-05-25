@@ -19,12 +19,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "visualizer.h"
 #include <math.h>
 #include <stdio.h>
+#include <GLFW/glfw3.h>
 
 static GDisplay* lcd;
 static GDisplay* led;
 static GDisplay* temp;
 static GDisplay* lightmap;
 static font_t font;
+static GLFWwindow* window;
+
+void error_callback(int error, const char* description)
+{
+    (void)error;
+    fputs(description, stderr);
+}
 
 GDisplay* get_lcd_display(void) {
     return lcd;
@@ -65,6 +73,11 @@ color_t hslToRgb(float h, float s, float l){
 
 
 int main(void) {
+    glfwSetErrorCallback(error_callback);
+    if (!glfwInit())
+        exit(EXIT_FAILURE);
+    window = glfwCreateWindow(GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT,
+            "Ergodox Emulator", NULL, NULL);
 
     gfxInit();
     lcd = gdispPixmapCreate(128, 32);
@@ -107,10 +120,14 @@ int main(void) {
     uint8_t layer_state = 0;
     uint8_t leds = 0;
 
-    while(TRUE) {
+    while (!glfwWindowShouldClose(window)) {
         visualizer_update(default_layer_state, layer_state, leds);
         gfxSleepMilliseconds(1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glfwPollEvents();
     }
+    glfwDestroyWindow(window);
+    glfwTerminate();
 }
 
 typedef struct {
@@ -311,8 +328,14 @@ void draw_emulator(void) {
     int keyboard_y = 10;
     systemticks_t start_draw = gfxSystemTicks();
 
+    if (!glfwGetCurrentContext()) {
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+    }
+
     gdispSetDisplay(temp);
-    gdispClear(HTML2COLOR(0x8B4513));
+    glClearColor(0x8B / 255.0f, 0x45 / 255.0f, 0x13 / 255.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     // Main keyboard area
     gdispFillConvexPoly(keyboard_x, keyboard_y, points, sizeof(points) / sizeof(point), HTML2COLOR(0xDADADA));
@@ -345,4 +368,6 @@ void draw_emulator(void) {
     gdispDrawString(0, 730, buffer, font, White);
     gdispFlush();
     gdispSetDisplay(lcd);
+    glClearColor(1.0f, 0, 0, 0);
+    glfwSwapBuffers(window);
 }

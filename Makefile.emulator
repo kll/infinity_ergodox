@@ -16,7 +16,8 @@
 # uGFX settings
 	# See $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk for the list of variables
 	GFXLIB					= ../uGFX
-	GFXBOARD				= Win32
+	#GFXBOARD				= Win32
+	GFXDRIVERS				= gdisp/TestStub
 	PROJECT				    = ergodox
 
 # ChibiOS settings
@@ -27,6 +28,9 @@ endif
 
 # Win32 settings
 	# See $(GFXLIB)/tools/gmake_scripts/os_win32.mk for the list of variables
+
+GLFW_DIR = ../glfw
+	
 	
 #TMK settings
 VISUALIZER_ENABLE = yes # Enable to customize the LCD and LEDS
@@ -45,13 +49,12 @@ CFLAGS   = -std=gnu99
 #CXXFLAGS = 
 #ASFLAGS  =
 LDFLAGS  = -g
-
 SRC      = emulator_main.c
 #OBJS     =
 DEFS     = -DEMULATOR $(UDEFS)
-LIBS     = $(ULIBS)
-#INCPATH  =
-#LIBPATH  =
+LIBS     = $(ULIBS) glfw3 gdi32 opengl32
+INCPATH  = $(GLFW_DIR)/include
+LIBPATH  = $(GLFW_DIR)/src
 
 ##############################################################################################
 # These should be at the end
