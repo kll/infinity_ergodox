@@ -36,6 +36,18 @@ static GLuint view_projection_location;
 static GLuint keyboard_position_location;
 static GLuint element_color_location;
 
+static GLuint keyboard_vertex_buffer;
+static GLuint key_inner_vertex_buffer;
+static GLuint key_inner_vertex_buffer_size;
+static GLuint key_outer_vertex_buffer;
+static GLuint key_outer_vertex_buffer_size;
+
+typedef struct {
+    point pos;
+    float size;
+    float rot;
+} keyinfo_t;
+
 static const GLfloat keyboard_vertex_data[] = {
     25, 0,
     210, 0,
@@ -55,8 +67,66 @@ static const GLfloat keyboard_vertex_data[] = {
     0, 517,
     0, 25,
 };
-static GLuint keyboard_vertex_buffer;
 
+keyinfo_t keys[] = {
+     {{71.12f, 160.85f}, 1.5f, 0.0f},
+     {{166.37f, 160.85f}, 1.0f, 0.0f},
+     {{242.57f, 148.15f}, 1.0f, 0.0f},
+     {{318.77f, 141.8f}, 1.0f, 0.0f},
+     {{394.97f, 148.16f}, 1.0f, 0.0f},
+     {{471.17f, 153.24f}, 1.0f, 0.0f},
+     {{547.37f, 153.24f}, 1.0f, 0.0f},
+
+     {{71.12f, 237.05f}, 1.5f, 0.0f},
+     {{166.37f, 237.05f}, 1.0f, 0.0f},
+     {{242.57f, 224.35f}, 1.0f, 0.0f},
+     {{318.77f, 218.0f}, 1.0f, 0.0f},
+     {{394.97f, 224.36f}, 1.0f, 0.0f},
+     {{471.17f, 229.44f}, 1.0f, 0.0f},
+     {{547.37f, 248.49f}, 1.5f, 270.0f},
+
+     {{71.12f, 313.25f}, 1.5f, 0.0f},
+     {{166.37f, 313.25f}, 1.0f, 0.0f},
+     {{242.57f, 300.55f}, 1.0f, 0.0f},
+     {{318.77f, 294.2f}, 1.0f, 0.0f},
+     {{394.97f, 300.56f}, 1.0f, 0.0f},
+     {{471.17f, 305.44f}, 1.0f, 0.0f},
+     {{0, 0}, 0, 0},
+
+     {{71.12f, 389.45f}, 1.5f, 0.0f},
+     {{166.37f, 389.45f}, 1.0f, 0.0f},
+     {{242.57f, 376.65f}, 1.0f, 0.0f},
+     {{318.77f, 370.4f}, 1.0f, 0.0f},
+     {{394.97f, 376.76f}, 1.0f, 0.0f},
+     {{471.17f, 381.64f}, 1.0f, 0.0f},
+     {{547.37f, 362.79f}, 1.5f, 270.0f},
+
+     {{90.17f, 465.65f}, 1.0f, 0.0f},
+     {{166.37f, 465.65f}, 1.0f, 0.0f},
+     {{242.57f, 452.85f}, 1.0f, 0.0f},
+     {{318.77f, 446.6f}, 1.0f, 0.0f},
+     {{394.97f, 452.96f}, 1.0f, 0.0f},
+     {{629.09f, 433.73f}, 1.0f, 65.0f},
+     {{698.15f, 465.94f}, 1.0f, 65.0f},
+
+     {{0, 0}, 0, 0},
+     {{0, 0}, 0, 0},
+     {{0, 0}, 0, 0},
+     {{0, 0}, 0, 0},
+     {{0, 0}, 0, 0},
+     {{0, 0}, 0, 0},
+     {{665.94f, 535.0f}, 1.0f, 65.0f},
+
+     {{0, 0}, 0, 0},
+     {{0, 0}, 0, 0},
+     {{0, 0}, 0, 0},
+     {{0, 0}, 0, 0},
+     {{512.72f, 505.11f}, 2.0f, 245.0f},
+     {{580.78f, 537.32f}, 2.0f, 245.0f},
+     {{633.73f, 604.06f}, 1.0f, 65.0f},
+};
+
+static const int num_keys = sizeof(keys) / sizeof(keyinfo_t);
 void error_callback(int error, const char* description)
 {
     (void)error;
@@ -172,6 +242,81 @@ GLuint load_program(const char* vertex_shader, const char* fragment_shader) {
     return program_id;
 }
 
+void create_keyboard_vertex_buffer(void) {
+    glGenBuffers(1, &keyboard_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, keyboard_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(keyboard_vertex_data), keyboard_vertex_data, GL_STATIC_DRAW);
+}
+
+GLfloat* create_quad(GLfloat* out, point* points) {
+    *out++ = points[0].x;
+    *out++ = points[0].y;
+    *out++ = points[1].x;
+    *out++ = points[1].y;
+    *out++ = points[3].x;
+    *out++ = points[3].y;
+    *out++ = points[1].x;
+    *out++ = points[1].y;
+    *out++ = points[2].x;
+    *out++ = points[2].y;
+    *out++ = points[3].x;
+    *out++ = points[3].y;
+    return out;
+}
+
+void create_key_vertex_buffers(void) {
+    const float keycap_size = 73.66f; // 7.25 * 2.54 * 4
+    const float keycap_inner_size = 50.8f;
+    const float keycap_border = keycap_size - keycap_inner_size;
+
+    GLfloat outer_vertex_data[2 * num_keys * 6];
+    GLfloat* outer_vertex = outer_vertex_data;
+    GLfloat inner_vertex_data[2 * num_keys * 6];
+    GLfloat* inner_vertex = inner_vertex_data;
+
+    for (int i=0;i<num_keys;i++) {
+        if (keys[i].size == 0)
+            continue;
+        MatrixFloat2D mat;
+        gmiscMatrixFloat2DApplyRotation(&mat, NULL, keys[i].rot);
+        gmiscMatrixFloat2DApplyTranslation(&mat, &mat, keys[i].pos.x, keys[i].pos.y);
+
+        float width = keycap_size  * keys[i].size;
+        float height = keycap_size;
+        float half_width = width / 2.0f;
+        float half_height = height / 2.0f;
+        point points[] = {
+            {-half_width, -half_height},
+            {half_width, -half_height},
+            {half_width, half_height},
+            {-half_width, half_height},
+        };
+        gmiscMatrixFloat2DApplyToPoints(points, points, &mat, 4);
+        outer_vertex = create_quad(outer_vertex, points);
+
+        width -= keycap_border;
+        height -= keycap_border;
+        half_width = width / 2.0f;
+        half_height = height / 2.0f;
+        point points2[] = {
+            {-half_width, -half_height},
+            {half_width, -half_height},
+            {half_width, half_height},
+            {-half_width, half_height}
+        };
+        gmiscMatrixFloat2DApplyToPoints(points2, points2, &mat, 4);
+        inner_vertex = create_quad(inner_vertex, points2);
+    }
+    key_outer_vertex_buffer_size = outer_vertex - outer_vertex_data;
+    glGenBuffers(1, &key_outer_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, key_outer_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, key_outer_vertex_buffer_size * sizeof(GLfloat), outer_vertex_data, GL_STATIC_DRAW);
+
+    key_inner_vertex_buffer_size = inner_vertex - inner_vertex_data;
+    glGenBuffers(1, &key_inner_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, key_inner_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, key_inner_vertex_buffer_size * sizeof(GLfloat), inner_vertex_data, GL_STATIC_DRAW);
+}
 
 int main(void) {
     glfwSetErrorCallback(error_callback);
@@ -195,9 +340,8 @@ int main(void) {
     glBindVertexArray(VertexArrayID);
     keyboard_shader=load_program("keyboard.vertexshader", "keyboard.fragmentshader");
 
-    glGenBuffers(1, &keyboard_vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, keyboard_vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(keyboard_vertex_data), keyboard_vertex_data, GL_STATIC_DRAW);
+    create_keyboard_vertex_buffer();
+    create_key_vertex_buffers();
 
     view_projection_location = glGetUniformLocation(keyboard_shader, "view_projection");
     keyboard_position_location = glGetUniformLocation(keyboard_shader, "keyboard_location");
@@ -256,71 +400,6 @@ int main(void) {
     glfwTerminate();
 }
 
-typedef struct {
-    point pos;
-    float size;
-    float rot;
-} keyinfo_t;
-
-keyinfo_t keys[] = {
-     {{71.12f, 160.85f}, 1.5f, 0.0f},
-     {{166.37f, 160.85f}, 1.0f, 0.0f},
-     {{242.57f, 148.15f}, 1.0f, 0.0f},
-     {{318.77f, 141.8f}, 1.0f, 0.0f},
-     {{394.97f, 148.16f}, 1.0f, 0.0f},
-     {{471.17f, 153.24f}, 1.0f, 0.0f},
-     {{547.37f, 153.24f}, 1.0f, 0.0f},
-
-     {{71.12f, 237.05f}, 1.5f, 0.0f},
-     {{166.37f, 237.05f}, 1.0f, 0.0f},
-     {{242.57f, 224.35f}, 1.0f, 0.0f},
-     {{318.77f, 218.0f}, 1.0f, 0.0f},
-     {{394.97f, 224.36f}, 1.0f, 0.0f},
-     {{471.17f, 229.44f}, 1.0f, 0.0f},
-     {{547.37f, 248.49f}, 1.5f, 270.0f},
-
-     {{71.12f, 313.25f}, 1.5f, 0.0f},
-     {{166.37f, 313.25f}, 1.0f, 0.0f},
-     {{242.57f, 300.55f}, 1.0f, 0.0f},
-     {{318.77f, 294.2f}, 1.0f, 0.0f},
-     {{394.97f, 300.56f}, 1.0f, 0.0f},
-     {{471.17f, 305.44f}, 1.0f, 0.0f},
-     {{0, 0}, 0, 0},
-
-     {{71.12f, 389.45f}, 1.5f, 0.0f},
-     {{166.37f, 389.45f}, 1.0f, 0.0f},
-     {{242.57f, 376.65f}, 1.0f, 0.0f},
-     {{318.77f, 370.4f}, 1.0f, 0.0f},
-     {{394.97f, 376.76f}, 1.0f, 0.0f},
-     {{471.17f, 381.64f}, 1.0f, 0.0f},
-     {{547.37f, 362.79f}, 1.5f, 270.0f},
-
-     {{90.17f, 465.65f}, 1.0f, 0.0f},
-     {{166.37f, 465.65f}, 1.0f, 0.0f},
-     {{242.57f, 452.85f}, 1.0f, 0.0f},
-     {{318.77f, 446.6f}, 1.0f, 0.0f},
-     {{394.97f, 452.96f}, 1.0f, 0.0f},
-     {{629.09f, 433.73f}, 1.0f, 65.0f},
-     {{698.15f, 465.94f}, 1.0f, 65.0f},
-
-     {{0, 0}, 0, 0},
-     {{0, 0}, 0, 0},
-     {{0, 0}, 0, 0},
-     {{0, 0}, 0, 0},
-     {{0, 0}, 0, 0},
-     {{0, 0}, 0, 0},
-     {{665.94f, 535.0f}, 1.0f, 65.0f},
-
-     {{0, 0}, 0, 0},
-     {{0, 0}, 0, 0},
-     {{0, 0}, 0, 0},
-     {{0, 0}, 0, 0},
-     {{512.72f, 505.11f}, 2.0f, 245.0f},
-     {{580.78f, 537.32f}, 2.0f, 245.0f},
-     {{633.73f, 604.06f}, 1.0f, 65.0f},
-};
-
-static const int num_keys = sizeof(keys) / sizeof(keyinfo_t);
 
 static inline int add_color_component(int a, int b) {
     int res = a + b;
@@ -420,47 +499,25 @@ void draw_leds(int keyboard_x, int keyboard_y) {
     }
 }
 
-void draw_keycaps(int keyboard_x, int keyboard_y) {
-    const float keycap_size = 73.66f; // 7.25 * 2.54 * 4
-    const float keycap_inner_size = 50.8f;
-    const float keycap_border = keycap_size - keycap_inner_size;
+void draw_triangles(GLuint vertex_buffer, GLuint vertex_buffer_size, GLuint r, GLuint g, GLuint b) {
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+    glVertexAttribPointer(
+       0,                  // attribute
+       2,                  // size
+       GL_FLOAT,           // type
+       GL_FALSE,           // normalized?
+       0,                  // stride
+       (void*)0            // array buffer offset
+    );
+    glUniform3f(element_color_location, r / 255.0f, g / 255.0f, b / 255.0f);
+    glDrawArrays(GL_TRIANGLES, 0, vertex_buffer_size);
+    glDisableVertexAttribArray(0);
+}
 
-    for (int i=0;i<num_keys;i++) {
-        if (keys[i].size == 0)
-            continue;
-        MatrixFloat2D rot;
-        gmiscMatrixFloat2DApplyRotation(&rot, NULL, keys[i].rot);
-        int mid_x = keys[i].pos.x + keyboard_x;
-        int mid_y = keys[i].pos.y + keyboard_y;
-
-        float width = keycap_size  * keys[i].size;
-        float height = keycap_size;
-        float half_width = width / 2.0f;
-        float half_height = height / 2.0f;
-        point points[] = {
-            {-half_width, -half_height},
-            {half_width, -half_height},
-            {half_width, half_height},
-            {-half_width, half_height},
-        };
-
-        gmiscMatrixFloat2DApplyToPoints(points, points, &rot, 4);
-
-        gdispFillConvexPoly(mid_x, mid_y, points, 4, Black);
-
-        width -= keycap_border;
-        height -= keycap_border;
-        half_width = width / 2.0f;
-        half_height = height / 2.0f;
-        point points2[] = {
-            {-half_width, -half_height},
-            {half_width, -half_height},
-            {half_width, half_height},
-            {-half_width, half_height}
-        };
-        gmiscMatrixFloat2DApplyToPoints(points2, points2, &rot, 4);
-        gdispFillConvexPoly(mid_x, mid_y, points2, 4, HTML2COLOR(0x202020));
-    }
+void draw_keycaps(void) {
+    draw_triangles(key_outer_vertex_buffer, key_outer_vertex_buffer_size, 0, 0, 0);
+    draw_triangles(key_inner_vertex_buffer, key_inner_vertex_buffer_size, 0x20, 0x20, 0x20);
 }
 
 void draw_lcd(int keyboard_x, int keyboard_y) {
@@ -497,13 +554,14 @@ void draw_emulator(void) {
     setup_keyboard_location(keyboard_x, keyboard_y);
 
     draw_main_keyboard_area();
-
     systemticks_t after_draw_keyboard = gfxSystemTicks();
 
-    draw_keycaps(keyboard_x, keyboard_y);
+    draw_keycaps();
     systemticks_t after_draw_keycaps = gfxSystemTicks();
+
     draw_leds(keyboard_x, keyboard_y);
     systemticks_t after_draw_leds = gfxSystemTicks();
+
     draw_lcd(keyboard_x, keyboard_y);
     systemticks_t after_draw_lcd = gfxSystemTicks();
 
