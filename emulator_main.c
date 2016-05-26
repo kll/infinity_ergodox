@@ -32,6 +32,30 @@ static GDisplay* lightmap;
 static font_t font;
 static GLFWwindow* window;
 static GLuint keyboard_shader;
+static GLuint view_projection_location;
+static GLuint keyboard_position_location;
+static GLuint element_color_location;
+
+static const GLfloat keyboard_vertex_data[] = {
+    25, 0,
+    210, 0,
+    242, 7,
+    334, 50,
+    366, 57,
+    593, 57,
+    619, 83,
+    619, 333,
+    633, 356,
+    772, 421,
+    784, 454,
+    678, 678,
+    646, 690,
+    325, 543,
+    25, 543,
+    0, 517,
+    0, 25,
+};
+static GLuint keyboard_vertex_buffer;
 
 void error_callback(int error, const char* description)
 {
@@ -76,15 +100,29 @@ color_t hslToRgb(float h, float s, float l){
     return RGB2COLOR((int)roundf(r * 255), (int)roundf(g * 255), (int)roundf(b * 255));
 }
 
-void print_status(GLuint id, GLenum type) {
+void print_compile_status(const char* file, GLuint id) {
     GLint result = GL_FALSE;
     int info_log_length;
-    glGetShaderiv(id, type, &result);
+    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
     glGetShaderiv(id, GL_INFO_LOG_LENGTH, &info_log_length);
     if ( info_log_length > 0 ){
         char* error_message = malloc(info_log_length + 1);
         glGetShaderInfoLog(id, info_log_length, NULL, error_message);
+        printf("%s %s\n", file, error_message);
+        free(error_message);
+    }
+}
+
+void print_link_status(GLuint id) {
+    GLint result = GL_FALSE;
+    int info_log_length;
+    glGetProgramiv(id, GL_LINK_STATUS, &result);
+    glGetProgramiv(id, GL_INFO_LOG_LENGTH, &info_log_length);
+    if ( info_log_length > 0 ){
+        char* error_message = malloc(info_log_length + 1);
+        glGetShaderInfoLog(id, info_log_length, NULL, error_message);
         printf("%s\n", error_message);
+        free(error_message);
     }
 }
 
@@ -109,7 +147,7 @@ GLuint load_shader(const char* path) {
     glShaderSource(id, 1, (const char**)&buffer, NULL);
     glCompileShader(id);
 
-    print_status(id, GL_COMPILE_STATUS);
+    print_compile_status(path, id);
 
     free(buffer);
     // Check Vertex Shader
@@ -124,7 +162,7 @@ GLuint load_program(const char* vertex_shader, const char* fragment_shader) {
     glAttachShader(program_id, vertex_shader_id);
     glAttachShader(program_id, fragment_shader_id);
     glLinkProgram(program_id);
-    print_status(program_id, GL_LINK_STATUS);
+    print_link_status(program_id);
     glDetachShader(program_id, vertex_shader_id);
     glDetachShader(program_id, fragment_shader_id);
 
@@ -152,7 +190,18 @@ int main(void) {
         exit(EXIT_FAILURE);
     };
     printf("OpenGL Version %d.%d loaded\n", GLVersion.major, GLVersion.minor);
+    GLuint VertexArrayID;
+    glGenVertexArrays(1, &VertexArrayID);
+    glBindVertexArray(VertexArrayID);
     keyboard_shader=load_program("keyboard.vertexshader", "keyboard.fragmentshader");
+
+    glGenBuffers(1, &keyboard_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, keyboard_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(keyboard_vertex_data), keyboard_vertex_data, GL_STATIC_DRAW);
+
+    view_projection_location = glGetUniformLocation(keyboard_shader, "view_projection");
+    keyboard_position_location = glGetUniformLocation(keyboard_shader, "keyboard_location");
+    element_color_location = glGetUniformLocation(keyboard_shader, "element_color");
 
     glfwMakeContextCurrent(NULL);
 
@@ -285,6 +334,55 @@ static inline int add_colors(color_t a, color_t b) {
     return RGB2COLOR(red, green, blue);
 }
 
+static void setup_view_projection(void) {
+    const GLfloat left = 0;
+    const GLfloat right = GDISP_SCREEN_WIDTH;
+    const GLfloat top = 0;
+    const GLfloat bottom = GDISP_SCREEN_HEIGHT;
+    const GLfloat far_val = 10.0f;
+    const GLfloat near_val = -10.0f;
+    const GLfloat a = 2.0f / (right-left);
+    const GLfloat b = -(right + left) / (right - left);
+    const GLfloat c = 2.0f / (top - bottom);
+    const GLfloat d = -(top + bottom) / (top - bottom);
+    const GLfloat e = -2.0f / (far_val - near_val);
+    const GLfloat f = -(far_val + near_val) / (far_val - near_val);
+
+    const GLfloat view_projection[4*4] = {
+        a,    0.0f, 0.0f, 0.0f,
+        0.0f, c,    0.0f, 0.0f,
+        0.0f, 0.0f, e,    0.0f,
+        b,    d,    f,    1.0f
+    };
+    glUniformMatrix4fv(view_projection_location, 1, GL_FALSE, view_projection);
+}
+
+static void setup_keyboard_location(int keyboard_x, int keyboard_y) {
+    const GLfloat matrix[4*4] = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        keyboard_x, keyboard_y, 0.0f, 1.0f
+    };
+    glUniformMatrix4fv(keyboard_position_location, 1, GL_FALSE, matrix);
+}
+
+void draw_main_keyboard_area(void) {
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, keyboard_vertex_buffer);
+    glVertexAttribPointer(
+       0,                  // attribute
+       2,                  // size
+       GL_FLOAT,           // type
+       GL_FALSE,           // normalized?
+       0,                  // stride
+       (void*)0            // array buffer offset
+    );
+    glUniform3f(element_color_location, 0xDA / 255.0f, 0xDA / 255.0f, 0xDA / 255.0f);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(keyboard_vertex_data) / sizeof(GLfloat) / 2);
+    glDisableVertexAttribArray(0);
+}
+
 void draw_leds(int keyboard_x, int keyboard_y) {
 
     //memset(final_intensity, 0, sizeof(final_intensity));
@@ -382,25 +480,6 @@ void draw_lcd(int keyboard_x, int keyboard_y) {
 }
 
 void draw_emulator(void) {
-    point points[] = {
-        {25, 0},
-        {210, 0},
-        {242, 7},
-        {334, 50},
-        {366, 57},
-        {593, 57},
-        {619, 83},
-        {619, 333},
-        {633, 356},
-        {772, 421},
-        {784, 454},
-        {678, 678},
-        {646, 690},
-        {325, 543},
-        {25, 542},
-        {0, 517},
-        {0, 25},
-    };
     int keyboard_x = 10;
     int keyboard_y = 10;
     systemticks_t start_draw = gfxSystemTicks();
@@ -409,14 +488,16 @@ void draw_emulator(void) {
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
     }
-    glUseProgram(keyboard_shader);
 
     gdispSetDisplay(temp);
     glClearColor(0x8B / 255.0f, 0x45 / 255.0f, 0x13 / 255.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glUseProgram(keyboard_shader);
+    setup_view_projection();
+    setup_keyboard_location(keyboard_x, keyboard_y);
 
-    // Main keyboard area
-    gdispFillConvexPoly(keyboard_x, keyboard_y, points, sizeof(points) / sizeof(point), HTML2COLOR(0xDADADA));
+    draw_main_keyboard_area();
+
     systemticks_t after_draw_keyboard = gfxSystemTicks();
 
     draw_keycaps(keyboard_x, keyboard_y);
@@ -446,6 +527,5 @@ void draw_emulator(void) {
     gdispDrawString(0, 730, buffer, font, White);
     gdispFlush();
     gdispSetDisplay(lcd);
-    glClearColor(1.0f, 0, 0, 0);
     glfwSwapBuffers(window);
 }
