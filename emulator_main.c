@@ -41,6 +41,7 @@ static GLuint key_inner_vertex_buffer;
 static GLuint key_inner_vertex_buffer_size;
 static GLuint key_outer_vertex_buffer;
 static GLuint key_outer_vertex_buffer_size;
+static GLuint lcd_vertex_buffer;
 
 typedef struct {
     point pos;
@@ -264,6 +265,16 @@ GLfloat* create_quad(GLfloat* out, point* points) {
     return out;
 }
 
+GLfloat* create_quad_from_box(GLfloat* out, GLfloat left, GLfloat top, GLfloat width, GLfloat height) {
+    point p[] = {
+            {left, top},
+            {left + width, top},
+            {left + width, top + height},
+            {left, top + height}
+    };
+    return create_quad(out, p);
+}
+
 void create_key_vertex_buffers(void) {
     const float keycap_size = 73.66f; // 7.25 * 2.54 * 4
     const float keycap_inner_size = 50.8f;
@@ -318,6 +329,24 @@ void create_key_vertex_buffers(void) {
     glBufferData(GL_ARRAY_BUFFER, key_inner_vertex_buffer_size * sizeof(GLfloat), inner_vertex_data, GL_STATIC_DRAW);
 }
 
+void create_lcd_vertex_buffer(void) {
+    int lcd_x = 32;
+    int lcd_y = 19;
+    GLfloat vertex_data[2 * 6 * 6];
+    GLfloat* vertex = vertex_data;
+
+    vertex = create_quad_from_box(vertex, lcd_x, lcd_y, 173, 102);
+    vertex = create_quad_from_box(vertex, 4 + lcd_x, 4 + lcd_y, 165, 67);
+    vertex = create_quad_from_box(vertex, 4 + lcd_x, 72 + lcd_y, 165, 28);
+    vertex = create_quad_from_box(vertex, 6 + lcd_x, 6 + lcd_y, 161, 63);
+    vertex = create_quad_from_box(vertex, 4 + lcd_x, 71 + lcd_y, 165, 1);
+    vertex = create_quad_from_box(vertex, 23 + lcd_x, 21 + lcd_y, 128, 32);
+
+    glGenBuffers(1, &lcd_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, lcd_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+}
+
 int main(void) {
     glfwSetErrorCallback(error_callback);
     if (!glfwInit())
@@ -342,6 +371,7 @@ int main(void) {
 
     create_keyboard_vertex_buffer();
     create_key_vertex_buffers();
+    create_lcd_vertex_buffer();
 
     view_projection_location = glGetUniformLocation(keyboard_shader, "view_projection");
     keyboard_position_location = glGetUniformLocation(keyboard_shader, "keyboard_location");
@@ -499,7 +529,8 @@ void draw_leds(int keyboard_x, int keyboard_y) {
     }
 }
 
-void draw_triangles(GLuint vertex_buffer, GLuint vertex_buffer_size, GLuint r, GLuint g, GLuint b) {
+void draw_triangles_with_offset(GLuint vertex_buffer, GLuint vertex_buffer_size, GLuint offset, GLuint r, GLuint g, GLuint b) {
+    offset = offset * sizeof(GLfloat) * 2;
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(
@@ -508,11 +539,15 @@ void draw_triangles(GLuint vertex_buffer, GLuint vertex_buffer_size, GLuint r, G
        GL_FLOAT,           // type
        GL_FALSE,           // normalized?
        0,                  // stride
-       (void*)0            // array buffer offset
+       (void*)(intptr_t)offset           // array buffer offset
     );
     glUniform3f(element_color_location, r / 255.0f, g / 255.0f, b / 255.0f);
     glDrawArrays(GL_TRIANGLES, 0, vertex_buffer_size);
     glDisableVertexAttribArray(0);
+}
+
+void draw_triangles(GLuint vertex_buffer, GLuint vertex_buffer_size, GLuint r, GLuint g, GLuint b) {
+    draw_triangles_with_offset(vertex_buffer, vertex_buffer_size, 0, r, g, b);
 }
 
 void draw_keycaps(void) {
@@ -520,20 +555,13 @@ void draw_keycaps(void) {
     draw_triangles(key_inner_vertex_buffer, key_inner_vertex_buffer_size, 0x20, 0x20, 0x20);
 }
 
-void draw_lcd(int keyboard_x, int keyboard_y) {
-    int lcd_x = 32 + keyboard_x;
-    int lcd_y = 19 + keyboard_y;
-
-    gdispFillArea(lcd_x, lcd_y, 173, 102, Green);
-    // The black border in the LCD screen
-    gdispDrawBox(4 + lcd_x, 4 + lcd_y, 165, 67, Black);
-    gdispDrawBox(5 + lcd_x, 5 + lcd_y, 163, 65, Black);
-    // The black area at the bottom of the LCD
-    gdispFillArea(4 + lcd_x, 72 + lcd_y, 165, 28, Black);
-
-    // The actual LCD screen contents
-    gdispBlitArea(23 + lcd_x, 19 + lcd_y, 128, 32, gdispPixmapGetBits(lcd));
-
+void draw_lcd(void) {
+    draw_triangles(lcd_vertex_buffer, 6, 0, 256, 0);
+    draw_triangles_with_offset(lcd_vertex_buffer, 6, 6, 0, 0, 0);
+    draw_triangles_with_offset(lcd_vertex_buffer, 6, 12, 0, 0, 0);
+    draw_triangles_with_offset(lcd_vertex_buffer, 6, 18, 0, 128, 0);
+    draw_triangles_with_offset(lcd_vertex_buffer, 6, 24, 0, 128, 0);
+    draw_triangles_with_offset(lcd_vertex_buffer, 6, 30, 0, 64, 0);
 }
 
 void draw_emulator(void) {
@@ -562,7 +590,7 @@ void draw_emulator(void) {
     draw_leds(keyboard_x, keyboard_y);
     systemticks_t after_draw_leds = gfxSystemTicks();
 
-    draw_lcd(keyboard_x, keyboard_y);
+    draw_lcd();
     systemticks_t after_draw_lcd = gfxSystemTicks();
 
     gdispFlush();
