@@ -49,7 +49,7 @@ CFLAGS   = -std=gnu99
 #CXXFLAGS = 
 #ASFLAGS  =
 LDFLAGS  = -g
-SRC      = emulator/emulator_main.c glad/src/glad.c
+SRC      = emulator/emulator_main.c emulator/shader.c glad/src/glad.c
 #OBJS     =
 DEFS     = -DEMULATOR $(UDEFS) -D_WIN32
 LIBS     = $(ULIBS) glfw3 gdi32 opengl32 
