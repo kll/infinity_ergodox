@@ -30,7 +30,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 static GDisplay* lcd;
 static GDisplay* led;
 static GDisplay* temp;
-static GDisplay* lightmap;
 static font_t font;
 static GLFWwindow* window;
 
@@ -40,10 +39,13 @@ typedef struct {
     GLuint keyboard_position_location;
     GLuint element_color_location;
     GLuint texture_sampler_location;
+    GLuint intensity_location;
+    GLuint pos_location;
 }program_t;
 
 static program_t keyboard_program;
 static program_t lcd_program;
+static program_t led_program;
 static program_t* current_program;
 
 static GLuint keyboard_vertex_buffer;
@@ -53,6 +55,8 @@ static GLuint key_outer_vertex_buffer;
 static GLuint key_outer_vertex_buffer_size;
 static GLuint lcd_vertex_buffer;
 static GLuint lcd_uv_buffer;
+static GLuint led_vertex_buffer;
+static GLuint led_vertex_buffer_size;
 
 static GLuint lcd_texture;
 
@@ -71,36 +75,6 @@ GDisplay* get_lcd_display(void) {
 GDisplay* get_led_display(void) {
     return led;
 }
-#define lightmap_size 128
-float min_intensity = 5.0f / 256.0f;
-
-static color_t intensity_map[256][lightmap_size][lightmap_size];
-
-float hue2rgb (float p, float q, float t){
-    if(t < 0.0f) t += 1.0f;
-    if(t > 1.0f) t -= 1.0f;
-    if(t < 1.0f/6.0f) return p + (q - p) * 6.0f * t;
-    if(t < 1.0f/2.0f) return q;
-    if(t < 2.0f/3.0f) return p + (q - p) * (2.0f/3.0f - t) * 6.0f;
-    return p;
-}
-
-color_t hslToRgb(float h, float s, float l){
-    float r, g, b;
-    h = h / 360.0f;
-
-    if(s == 0){
-        r = g = b = l; // achromatic
-    }else{
-        float q = l < 0.5f ? l * (1.0f + s) : l + s - l * s;
-        float p = 2.0f * l - q;
-        r = hue2rgb(p, q, h + 1.0f/3.0f);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1.0f/3.0f);
-    }
-    return RGB2COLOR((int)roundf(r * 255), (int)roundf(g * 255), (int)roundf(b * 255));
-}
-
 
 static void create_keyboard_vertex_buffer(void) {
     glGenBuffers(1, &keyboard_vertex_buffer);
@@ -248,7 +222,42 @@ static void create_lcd_texture(void) {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-static void setup_variables(void) {
+static void create_led_vertex_buffer(void) {
+    GLfloat vertex_data[num_keys * 6 * 2];
+    GLfloat* vertex = vertex_data;
+    for (int i=0;i<num_keys;i++) {
+        if (keys[i].size == 0)
+            continue;
+
+        MatrixFloat2D rot;
+        gmiscMatrixFloat2DApplyRotation(&rot, NULL, keys[i].rot);
+        int mid_x = keys[i].pos.x;
+        int mid_y = keys[i].pos.y;
+        point points[] = {
+            {0, -20}
+        };
+        gmiscMatrixFloat2DApplyToPoints(points, points, &rot, 1);
+        int led_x = points[0].x + mid_x;
+        int led_y = points[0].y + mid_y;
+
+        point pos = {
+            led_x - led_radius,
+            led_y - led_radius
+        };
+
+        vertex = create_quad_from_box(vertex, pos.x, pos.y, led_radius * 2, led_radius * 2);
+    }
+    led_vertex_buffer_size = vertex - vertex_data;
+    glGenBuffers(1, &led_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, led_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, led_vertex_buffer_size * sizeof(GLfloat), vertex_data, GL_STATIC_DRAW);
+}
+
+static void load_shaders(void) {
+    keyboard_program.program_id = load_program("keyboard.vertexshader", "keyboard.fragmentshader");
+    lcd_program.program_id = load_program("lcd.vertexshader", "lcd.fragmentshader");
+    led_program.program_id = load_program("led.vertexshader", "led.fragmentshader");
+
     GLuint program_id = keyboard_program.program_id;
     keyboard_program.view_projection_location = glGetUniformLocation(program_id, "view_projection");
     keyboard_program.keyboard_position_location = glGetUniformLocation(program_id, "keyboard_location");
@@ -259,6 +268,12 @@ static void setup_variables(void) {
     lcd_program.keyboard_position_location = glGetUniformLocation(program_id, "keyboard_location");
     lcd_program.texture_sampler_location = glGetUniformLocation(program_id, "texture_sampler");
     lcd_program.element_color_location = glGetUniformLocation(program_id, "element_color");
+
+    program_id = led_program.program_id;
+    led_program.view_projection_location = glGetUniformLocation(program_id, "view_projection");
+    led_program.keyboard_position_location = glGetUniformLocation(program_id, "keyboard_location");
+    led_program.element_color_location = -1;
+    led_program.intensity_location = glGetUniformLocation(program_id, "intensity");
 }
 
 int main(void) {
@@ -281,13 +296,12 @@ int main(void) {
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
-    keyboard_program.program_id = load_program("keyboard.vertexshader", "keyboard.fragmentshader");
-    lcd_program.program_id = load_program("lcd.vertexshader", "lcd.fragmentshader");
-    setup_variables();
+    load_shaders();
 
     create_keyboard_vertex_buffer();
     create_key_vertex_buffers();
     create_lcd_vertex_buffer();
+    create_led_vertex_buffer();
 
     gfxInit();
     lcd = gdispPixmapCreate(lcd_pixel_area_size.x, lcd_pixel_area_size.y);
@@ -297,32 +311,7 @@ int main(void) {
     create_lcd_texture();
     glfwMakeContextCurrent(NULL);
 
-    lightmap = gdispPixmapCreate(lightmap_size * 8, lightmap_size * 8);
-
     font = gdispOpenFont("DejaVuSansBold12");
-
-    const int half_lightmap = lightmap_size / 2;
-
-    float alpha = 0.001f;
-    float radius = lightmap_size / 2;
-    float beta = 1.0f / (radius * radius * min_intensity);
-    for(int i=0;i<256;i++) {
-        for (int j = 0;j < lightmap_size;j++) {
-            for (int k=0;k < lightmap_size;k++) {
-                float a = j - half_lightmap;
-                float b = k - half_lightmap;
-                float dist = a*a + b*b;
-                dist = sqrtf(dist);
-                float att = 1.0f / (1.0f + alpha*dist + beta*dist*dist);
-                float new_i = i * att;
-                color_t led_color = hslToRgb(200, 0.75f, new_i / 255.0f);
-                if (new_i < min_intensity * 255.0f) {
-                   led_color = RGB2COLOR(0, 0, 0);
-                }
-                intensity_map[i][j][k] = led_color;
-            }
-        }
-    }
 
     gdispSetDisplay(lcd);
 
@@ -350,18 +339,6 @@ void lcd_backlight_hal_color(uint16_t r, uint16_t g, uint16_t b) {
     (void)r;
     (void)g;
     (void)b;
-}
-
-static inline int add_color_component(int a, int b) {
-    int res = a + b;
-    return res > 255 ? 255 : res;
-}
-
-static inline int add_colors(color_t a, color_t b) {
-    int red = add_color_component(RED_OF(a), RED_OF(b));
-    int green = add_color_component(GREEN_OF(a), GREEN_OF(b));
-    int blue = add_color_component(BLUE_OF(a), BLUE_OF(b));
-    return RGB2COLOR(red, green, blue);
 }
 
 static void setup_view_projection(void) {
@@ -422,43 +399,6 @@ static void draw_main_keyboard_area(void) {
     glUniform3f(current_program->element_color_location, r, g, b);
     glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(keyboard_vertex_data) / sizeof(GLfloat) / 2);
     glDisableVertexAttribArray(0);
-}
-
-static void draw_leds(int keyboard_x, int keyboard_y) {
-
-    //memset(final_intensity, 0, sizeof(final_intensity));
-    for (int i=0;i<num_keys;i++) {
-        if (keys[i].size == 0)
-            continue;
-        MatrixFloat2D rot;
-        gmiscMatrixFloat2DApplyRotation(&rot, NULL, keys[i].rot);
-        int mid_x = keys[i].pos.x + keyboard_x;
-        int mid_y = keys[i].pos.y + keyboard_y;
-        point points[] = {
-            {0, -20}
-        };
-        gmiscMatrixFloat2DApplyToPoints(points, points, &rot, 1);
-
-        int row = i / led_size.x;
-        int col = i - row * led_size.x;
-        int luma = LUMA_OF(gdispGGetPixelColor(led, col, row));
-        //color_t led_color = hslToRgb(200, 0.75f, 0.4f + 0.35f * luma / 255.0f);
-        int led_x = points[0].x + mid_x;
-        int led_y = points[0].y + mid_y;
-
-        int start_x = led_x - lightmap_size / 2;
-        int start_y = led_y - lightmap_size / 2;
-        for (int a = 0; a < lightmap_size; ++a) {
-            int y = start_y + a;
-            for (int b = 0; b < lightmap_size; ++b) {
-                int x = start_x + b;
-                color_t src_color = gdispGetPixelColor(x, y);
-                color_t led_color = intensity_map[luma][a][b];
-                color_t final_color = add_colors(led_color, src_color);
-                gdispDrawPixel(x, y, final_color);
-            }
-        }
-    }
 }
 
 static void draw_triangles_with_offset(GLuint vertex_buffer, GLuint vertex_buffer_size, GLuint offset, color_t color) {
@@ -542,6 +482,39 @@ static void draw_lcd(void) {
     draw_lcd_texture(30, lcd_pixel_area_color);
 }
 
+static void draw_leds(void) {
+    use_program(&led_program);
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_ONE, GL_ONE);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, lcd_uv_buffer);
+    glVertexAttribPointer(
+        1,                                // attribute.
+        2,                                // size : U+V => 2
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+
+    unsigned buffer_pos = 0;
+
+    for (int i=0;i<num_keys;i++) {
+        if (keys[i].size == 0)
+            continue;
+        int row = i / led_size.x;
+        int col = i - row * led_size.x;
+        int luma = LUMA_OF(gdispGGetPixelColor(led, col, row));
+
+        glUniform1f(current_program->intensity_location, luma / 255.0f);
+        draw_triangles_with_offset(led_vertex_buffer, 6, buffer_pos, RGB2COLOR(0, 0, 255));
+        buffer_pos += 6;
+    }
+    glDisableVertexAttribArray(1);
+    glDisable(GL_BLEND);
+}
+
+
 void draw_emulator(void) {
     systemticks_t start_draw = gfxSystemTicks();
 
@@ -565,11 +538,11 @@ void draw_emulator(void) {
     draw_keycaps();
     systemticks_t after_draw_keycaps = gfxSystemTicks();
 
-    draw_leds(keyboard_pos.x, keyboard_pos.y);
-    systemticks_t after_draw_leds = gfxSystemTicks();
-
     draw_lcd();
     systemticks_t after_draw_lcd = gfxSystemTicks();
+
+    draw_leds();
+    systemticks_t after_draw_leds = gfxSystemTicks();
 
     gdispFlush();
     systemticks_t after_flush = gfxSystemTicks();
