@@ -32,9 +32,18 @@ static GDisplay* lightmap;
 static font_t font;
 static GLFWwindow* window;
 static GLuint keyboard_shader;
-static GLuint view_projection_location;
-static GLuint keyboard_position_location;
-static GLuint element_color_location;
+static GLuint lcd_shader;
+
+typedef struct {
+    GLuint view_projection_location;
+    GLuint keyboard_position_location;
+    GLuint element_color_location;
+    GLuint texture_sampler_location;
+}locations_t;
+
+static locations_t keyboard_locations;
+static locations_t lcd_locations;
+static locations_t* locations;
 
 static GLuint keyboard_vertex_buffer;
 static GLuint key_inner_vertex_buffer;
@@ -42,6 +51,9 @@ static GLuint key_inner_vertex_buffer_size;
 static GLuint key_outer_vertex_buffer;
 static GLuint key_outer_vertex_buffer_size;
 static GLuint lcd_vertex_buffer;
+static GLuint lcd_uv_buffer;
+
+static GLuint lcd_texture;
 
 typedef struct {
     point pos;
@@ -345,6 +357,29 @@ void create_lcd_vertex_buffer(void) {
     glGenBuffers(1, &lcd_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, lcd_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+
+
+    static const GLfloat uv_data[] = {
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            0.0f, 1.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
+    };
+    glGenBuffers(1, &lcd_uv_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, lcd_uv_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(uv_data), uv_data, GL_STATIC_DRAW);
+}
+
+void create_lcd_texture(void) {
+    gdispGClear(lcd, White);
+    glGenTextures(1, &lcd_texture);
+    glBindTexture(GL_TEXTURE_2D, lcd_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, 128, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, gdispPixmapGetBits(lcd));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 int main(void) {
@@ -368,21 +403,28 @@ int main(void) {
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
     keyboard_shader=load_program("keyboard.vertexshader", "keyboard.fragmentshader");
+    lcd_shader = load_program("lcd.vertexshader", "lcd.fragmentshader");
 
     create_keyboard_vertex_buffer();
     create_key_vertex_buffers();
     create_lcd_vertex_buffer();
 
-    view_projection_location = glGetUniformLocation(keyboard_shader, "view_projection");
-    keyboard_position_location = glGetUniformLocation(keyboard_shader, "keyboard_location");
-    element_color_location = glGetUniformLocation(keyboard_shader, "element_color");
 
-    glfwMakeContextCurrent(NULL);
+    keyboard_locations.view_projection_location = glGetUniformLocation(keyboard_shader, "view_projection");
+    keyboard_locations.keyboard_position_location = glGetUniformLocation(keyboard_shader, "keyboard_location");
+    keyboard_locations.element_color_location = glGetUniformLocation(keyboard_shader, "element_color");
+
+    lcd_locations.view_projection_location = glGetUniformLocation(lcd_shader, "view_projection");
+    lcd_locations.keyboard_position_location = glGetUniformLocation(lcd_shader, "keyboard_location");
+    lcd_locations.texture_sampler_location = glGetUniformLocation(lcd_shader, "texture_sampler");
 
     gfxInit();
     lcd = gdispPixmapCreate(128, 32);
     led = gdispPixmapCreate(7, 7);
     temp = gdispPixmapCreate(GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT);
+
+    create_lcd_texture();
+    glfwMakeContextCurrent(NULL);
 
     lightmap = gdispPixmapCreate(lightmap_size * 8, lightmap_size * 8);
 
@@ -463,7 +505,7 @@ static void setup_view_projection(void) {
         0.0f, 0.0f, e,    0.0f,
         b,    d,    f,    1.0f
     };
-    glUniformMatrix4fv(view_projection_location, 1, GL_FALSE, view_projection);
+    glUniformMatrix4fv(locations->view_projection_location, 1, GL_FALSE, view_projection);
 }
 
 static void setup_keyboard_location(int keyboard_x, int keyboard_y) {
@@ -473,7 +515,7 @@ static void setup_keyboard_location(int keyboard_x, int keyboard_y) {
         0.0f, 0.0f, 1.0f, 0.0f,
         keyboard_x, keyboard_y, 0.0f, 1.0f
     };
-    glUniformMatrix4fv(keyboard_position_location, 1, GL_FALSE, matrix);
+    glUniformMatrix4fv(locations->keyboard_position_location, 1, GL_FALSE, matrix);
 }
 
 void draw_main_keyboard_area(void) {
@@ -487,7 +529,7 @@ void draw_main_keyboard_area(void) {
        0,                  // stride
        (void*)0            // array buffer offset
     );
-    glUniform3f(element_color_location, 0xDA / 255.0f, 0xDA / 255.0f, 0xDA / 255.0f);
+    glUniform3f(locations->element_color_location, 0xDA / 255.0f, 0xDA / 255.0f, 0xDA / 255.0f);
     glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(keyboard_vertex_data) / sizeof(GLfloat) / 2);
     glDisableVertexAttribArray(0);
 }
@@ -541,9 +583,47 @@ void draw_triangles_with_offset(GLuint vertex_buffer, GLuint vertex_buffer_size,
        0,                  // stride
        (void*)(intptr_t)offset           // array buffer offset
     );
-    glUniform3f(element_color_location, r / 255.0f, g / 255.0f, b / 255.0f);
+    glUniform3f(locations->element_color_location, r / 255.0f, g / 255.0f, b / 255.0f);
     glDrawArrays(GL_TRIANGLES, 0, vertex_buffer_size);
     glDisableVertexAttribArray(0);
+}
+
+void draw_lcd_texture(int keyboard_x, int keyboard_y, GLuint offset) {
+    glUseProgram(lcd_shader);
+    locations = &lcd_locations;
+    glDisable(GL_DEPTH_TEST);
+    setup_view_projection();
+    setup_keyboard_location(keyboard_x, keyboard_y);
+
+    offset = offset * sizeof(GLfloat) * 2;
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, lcd_vertex_buffer);
+    glVertexAttribPointer(
+       0,                  // attribute
+       2,                  // size
+       GL_FLOAT,           // type
+       GL_FALSE,           // normalized?
+       0,                  // stride
+       (void*)(intptr_t)offset           // array buffer offset
+    );
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, lcd_uv_buffer);
+    glVertexAttribPointer(
+        1,                                // attribute.
+        2,                                // size : U+V => 2
+        GL_FLOAT,                         // type
+        GL_FALSE,                         // normalized?
+        0,                                // stride
+        (void*)0                          // array buffer offset
+    );
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, lcd_texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 128, 32, GL_RGBA, GL_UNSIGNED_BYTE, gdispPixmapGetBits(lcd));
+    glUniform1i(locations->texture_sampler_location, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void draw_triangles(GLuint vertex_buffer, GLuint vertex_buffer_size, GLuint r, GLuint g, GLuint b) {
@@ -555,13 +635,13 @@ void draw_keycaps(void) {
     draw_triangles(key_inner_vertex_buffer, key_inner_vertex_buffer_size, 0x20, 0x20, 0x20);
 }
 
-void draw_lcd(void) {
+void draw_lcd(int keyboard_x, int keyboard_y) {
     draw_triangles(lcd_vertex_buffer, 6, 0, 256, 0);
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 6, 0, 0, 0);
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 12, 0, 0, 0);
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 18, 0, 128, 0);
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 24, 0, 128, 0);
-    draw_triangles_with_offset(lcd_vertex_buffer, 6, 30, 0, 64, 0);
+    draw_lcd_texture(keyboard_x, keyboard_y, 30);
 }
 
 void draw_emulator(void) {
@@ -577,7 +657,10 @@ void draw_emulator(void) {
     gdispSetDisplay(temp);
     glClearColor(0x8B / 255.0f, 0x45 / 255.0f, 0x13 / 255.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+
     glUseProgram(keyboard_shader);
+    locations = &keyboard_locations;
     setup_view_projection();
     setup_keyboard_location(keyboard_x, keyboard_y);
 
@@ -590,7 +673,7 @@ void draw_emulator(void) {
     draw_leds(keyboard_x, keyboard_y);
     systemticks_t after_draw_leds = gfxSystemTicks();
 
-    draw_lcd();
+    draw_lcd(keyboard_x, keyboard_y);
     systemticks_t after_draw_lcd = gfxSystemTicks();
 
     gdispFlush();

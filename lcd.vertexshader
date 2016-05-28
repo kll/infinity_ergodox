@@ -1,0 +1,16 @@
+#version 330 core
+
+layout(location = 0) in vec2 vertex_position_modelspace;
+layout(location = 1) in vec2 vertexUV;
+uniform mat4 view_projection;
+uniform mat4 keyboard_location;
+
+out vec2 UV;
+
+void main(){
+	// We do the translation in the shader rather than on c side, because of lack
+	// of a proper matrix library
+	mat4 m =  view_projection * keyboard_location;
+	gl_Position =  m * vec4(vertex_position_modelspace, 0.0, 1.0);
+	UV = vertexUV;
+}
