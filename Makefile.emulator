@@ -70,11 +70,11 @@ all: exe shaders
 
 
 SRCSHADERS = $(wildcard emulator/*.*shader)
-DSTSHADERS := $(patsubst %, $(BUILDDIR)/%, $(notdir, $(SRCSHADERS)))
+DSTSHADERS = $(patsubst emulator/%, $(BUILDDIR)/%, $(SRCSHADERS))
 
 shaders: $(DSTSHADERS)
 
-$(BUILDDIR)/%shader : %shader
+$(BUILDDIR)/%shader : emulator/%shader
 	cp -f $< $@
 
 #include $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk
