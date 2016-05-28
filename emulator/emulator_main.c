@@ -473,6 +473,14 @@ int main(void) {
     glfwTerminate();
 }
 
+void lcd_backlight_hal_init(void) {
+}
+
+void lcd_backlight_hal_color(uint16_t r, uint16_t g, uint16_t b) {
+    (void)r;
+    (void)g;
+    (void)b;
+}
 
 static inline int add_color_component(int a, int b) {
     int res = a + b;

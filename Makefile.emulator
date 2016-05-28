@@ -11,7 +11,7 @@
 	OPT_CPU = x64
 	OPT_LINK_OPTIMIZE		= yes
 	#OPT_VERBOSE_COMPILE    = yes
-	BUILDDIR 				= emulator
+	BUILDDIR 				= build_emulator
 
 # uGFX settings
 	# See $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk for the list of variables
@@ -49,7 +49,7 @@ CFLAGS   = -std=gnu99
 #CXXFLAGS = 
 #ASFLAGS  =
 LDFLAGS  = -g
-SRC      = emulator_main.c glad/src/glad.c
+SRC      = emulator/emulator_main.c glad/src/glad.c
 #OBJS     =
 DEFS     = -DEMULATOR $(UDEFS) -D_WIN32
 LIBS     = $(ULIBS) glfw3 gdi32 opengl32 
@@ -69,8 +69,8 @@ INCPATH += $(UINCDIR)
 all: exe shaders
 
 
-SRCSHADERS = $(wildcard *.*shader)
-DSTSHADERS := $(patsubst %, $(BUILDDIR)/%, $(SRCSHADERS))
+SRCSHADERS = $(wildcard emulator/*.*shader)
+DSTSHADERS := $(patsubst %, $(BUILDDIR)/%, $(notdir, $(SRCSHADERS)))
 
 shaders: $(DSTSHADERS)
 

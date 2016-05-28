@@ -1,6 +1,6 @@
 .dep
 build
-/emulator
+/build_emulator
 
 #ignore eclipse projects
 /.project
