@@ -65,6 +65,8 @@ static GLuint debug_vertex_buffer;
 static GLuint lcd_texture;
 static GLuint debug_texture;
 
+static color_t lcd_base_color;
+
 
 static const int num_keys = sizeof(keys) / sizeof(keyinfo_t);
 void error_callback(int error, const char* description)
@@ -314,6 +316,7 @@ int main(void) {
     glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint (GLFW_SRGB_CAPABLE, TRUE);
     window = glfwCreateWindow(GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT,
             "Ergodox Emulator", NULL, NULL);
     if(!window) {
@@ -351,8 +354,8 @@ int main(void) {
     // Initialize and clear the display
     visualizer_init();
 
-    uint8_t default_layer_state = 0;
-    uint8_t layer_state = 0;
+    uint8_t default_layer_state = 0x8;
+    uint8_t layer_state = 0x2;
     uint8_t leds = 0;
 
     while (!glfwWindowShouldClose(window)) {
@@ -369,9 +372,10 @@ void lcd_backlight_hal_init(void) {
 }
 
 void lcd_backlight_hal_color(uint16_t r, uint16_t g, uint16_t b) {
-    (void)r;
-    (void)g;
-    (void)b;
+    lcd_base_color = RGB2COLOR(
+            r * 255 / 65536,
+            g * 255 / 65536,
+            b * 255 / 65536);
 }
 
 static void setup_view_projection(void) {
@@ -501,18 +505,37 @@ static void draw_keycaps(void) {
     draw_triangles(key_inner_vertex_buffer, key_inner_vertex_buffer_size, keycap_inner_color);
 }
 
+static color_t multiply_color(color_t color, float multiplier) {
+    float r = RED_OF(color) * multiplier;
+    float g = GREEN_OF(color) * multiplier;
+    float b = BLUE_OF(color) * multiplier;
+    float m = r > g ? r : g;
+    m = m > b ? m : b;
+    if (m > 255.0f) {
+        float d = 255.0f / m;
+        r*=d;
+        g*=d;
+        b*=d;
+    }
+    return RGB2COLOR((int)r, (int)g, (int)b);
+}
+
 static void draw_lcd(void) {
     // The whole transparent area
-    draw_triangles(lcd_vertex_buffer, 6, lcd_transparent_color);
+    draw_triangles(lcd_vertex_buffer, 6,
+            multiply_color(lcd_base_color, lcd_transparent_color_multiplier));
     // The LCD lit area
-    draw_triangles_with_offset(lcd_vertex_buffer, 6, 6, lcd_lit_color);
+    draw_triangles_with_offset(lcd_vertex_buffer, 6, 6,
+            multiply_color(lcd_base_color, lcd_lit_color_multiplier));
     // The black box at the bottom
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 12, lcd_black_color);
     // The black border
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 18, lcd_black_color);
     // The LCD lit area again, but inside the black border only
-    draw_triangles_with_offset(lcd_vertex_buffer, 6, 24, lcd_lit_color);
-    draw_lcd_texture(30, lcd_pixel_area_color);
+    draw_triangles_with_offset(lcd_vertex_buffer, 6, 24,
+            multiply_color(lcd_base_color, lcd_lit_color_multiplier));
+    draw_lcd_texture(30,
+            multiply_color(lcd_base_color, lcd_pixel_area_color_multiplier));
 }
 
 static void draw_leds(void) {
@@ -595,6 +618,7 @@ void draw_emulator(void) {
     if (!glfwGetCurrentContext()) {
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
+        glEnable(GL_FRAMEBUFFER_SRGB);
     }
 
     glClearColor(

@@ -117,8 +117,9 @@
 //    #define GDISP_NEED_IMAGE_JPG                     FALSE
 //    #define GDISP_NEED_IMAGE_PNG                     FALSE
 //    #define GDISP_NEED_IMAGE_ACCOUNTING              FALSE
-
+#ifdef EMULATOR
 #define GDISP_NEED_PIXMAP                            TRUE
+#endif
 //    #define GDISP_NEED_PIXMAP_IMAGE                  FALSE
 
 //#define GDISP_DEFAULT_ORIENTATION                    GDISP_ROTATE_LANDSCAPE    // If not defined the native hardware orientation is used.
@@ -327,6 +328,6 @@
 //    #define GMISC_INVSQRT_MIXED_ENDIAN               FALSE
 //    #define GMISC_INVSQRT_REAL_SLOW                  FALSE
 #define GMISC_NEED_MATRIXFLOAT2D                     TRUE
-//#define GMISC_NEED_MATRIXFIXED2D                     FALSE
+#define GMISC_NEED_MATRIXFIXED2D                     FALSE
 
 #endif /* _GFXCONF_H */

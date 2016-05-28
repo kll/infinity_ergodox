@@ -28,13 +28,13 @@ static const point keyboard_pos = {10, 10};
 
 static const color_t background_color = RGB2COLOR(0x8B, 0x45, 0x13);
 
-static color_t main_keyboard_area_color = RGB2COLOR(0xDA, 0xDA, 0xDA);
+static color_t main_keyboard_area_color = RGB2COLOR(150, 150, 150);
 static const color_t keycap_outer_color = RGB2COLOR(0, 0, 0);
-static const color_t keycap_inner_color = RGB2COLOR(0x20, 0x20, 0x20);
+static const color_t keycap_inner_color = RGB2COLOR(3, 3, 3);
 
-static const color_t lcd_transparent_color = RGB2COLOR(0, 255, 0);
-static const color_t lcd_lit_color = RGB2COLOR(0, 128, 0);
-static const color_t lcd_pixel_area_color = RGB2COLOR(0, 100, 0);
+static const float lcd_transparent_color_multiplier = 20.0f;
+static const float lcd_lit_color_multiplier = 1.0f;
+static const float lcd_pixel_area_color_multiplier = 0.7f;
 static const color_t lcd_black_color = RGB2COLOR(0, 0, 0);
 
 static const GLfloat keyboard_vertex_data[] = {
@@ -137,6 +137,6 @@ static const GLfloat lcd_uv_data[] = {
         0.0f, 1.0f,
 };
 
-static const int led_radius = 300;
+static const int led_radius = 128;
 
 #endif /* EMULATOR_KEYBOARD_DATA_H_ */
