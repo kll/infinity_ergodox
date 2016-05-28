@@ -417,6 +417,7 @@ int main(void) {
     lcd_locations.view_projection_location = glGetUniformLocation(lcd_shader, "view_projection");
     lcd_locations.keyboard_position_location = glGetUniformLocation(lcd_shader, "keyboard_location");
     lcd_locations.texture_sampler_location = glGetUniformLocation(lcd_shader, "texture_sampler");
+    lcd_locations.element_color_location = glGetUniformLocation(lcd_shader, "element_color");
 
     gfxInit();
     lcd = gdispPixmapCreate(128, 32);
@@ -588,7 +589,7 @@ void draw_triangles_with_offset(GLuint vertex_buffer, GLuint vertex_buffer_size,
     glDisableVertexAttribArray(0);
 }
 
-void draw_lcd_texture(int keyboard_x, int keyboard_y, GLuint offset) {
+void draw_lcd_texture(int keyboard_x, int keyboard_y, GLuint offset, GLuint r, GLuint g, GLuint b) {
     glUseProgram(lcd_shader);
     locations = &lcd_locations;
     glDisable(GL_DEPTH_TEST);
@@ -620,6 +621,7 @@ void draw_lcd_texture(int keyboard_x, int keyboard_y, GLuint offset) {
     glBindTexture(GL_TEXTURE_2D, lcd_texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 128, 32, GL_RGBA, GL_UNSIGNED_BYTE, gdispPixmapGetBits(lcd));
     glUniform1i(locations->texture_sampler_location, 0);
+    glUniform3f(locations->element_color_location, r / 255.0f, g / 255.0f, b / 255.0f);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
@@ -641,7 +643,7 @@ void draw_lcd(int keyboard_x, int keyboard_y) {
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 12, 0, 0, 0);
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 18, 0, 128, 0);
     draw_triangles_with_offset(lcd_vertex_buffer, 6, 24, 0, 128, 0);
-    draw_lcd_texture(keyboard_x, keyboard_y, 30);
+    draw_lcd_texture(keyboard_x, keyboard_y, 30, 0, 100, 0);
 }
 
 void draw_emulator(void) {
