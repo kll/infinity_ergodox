@@ -605,17 +605,12 @@ static void draw_leds(void) {
 
     unsigned buffer_pos = 0;
 
+    pixel_t* pixels = getEmulatorPixmap(led);
+
     for (int i=0;i<num_keys;i++) {
         if (keys[i].size == 0)
             continue;
-        int row = i / led_size.x;
-        int col = i - row * led_size.x;
-        if (gdispGGetOrientation(led) == GDISP_ROTATE_180) {
-            col = led_size.x - col - 1;
-            row = led_size.y - row - 1;
-        }
-        int luma = LUMA_OF(gdispGGetPixelColor(led, col, row));
-
+        int luma = LUMA_OF(pixels[i]);
         glUniform1f(current_program->intensity_location, luma / 255.0f);
         draw_triangles_with_offset(led_vertex_buffer, 6, buffer_pos, RGB2COLOR(0, 0, 255));
         buffer_pos += 6;

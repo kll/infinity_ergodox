@@ -72,7 +72,11 @@ LLDSPEC void gdisp_lld_draw_pixel(GDisplay *g) {
 			pos = (g->g.Width-g->p.x-1) * g->g.Height + g->p.y;
 			break;
 		case GDISP_ROTATE_180:
+#ifdef ROTATE_180_IS_FLIP
+		    pos = g->p.y * g->g.Width + g->g.Width - g->p.x - 1;
+#else
 			pos = (g->g.Height-g->p.y-1) * g->g.Width + g->g.Width-g->p.x-1;
+#endif
 			break;
 		case GDISP_ROTATE_270:
 			pos = g->p.x * g->g.Height + g->g.Height-g->p.y-1;
@@ -98,7 +102,11 @@ LLDSPEC	color_t gdisp_lld_get_pixel_color(GDisplay *g) {
 			pos = (g->g.Width-g->p.x-1) * g->g.Height + g->p.y;
 			break;
 		case GDISP_ROTATE_180:
+#ifdef ROTATE_180_IS_FLIP
+		    pos = g->p.y * g->g.Width + g->g.Width - g->p.x - 1;
+#else
 			pos = (g->g.Height-g->p.y-1) * g->g.Width + g->g.Width-g->p.x-1;
+#endif
 			break;
 		case GDISP_ROTATE_270:
 			pos = g->p.x * g->g.Height + g->g.Height-g->p.y-1;

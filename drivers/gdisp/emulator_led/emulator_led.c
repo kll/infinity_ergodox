@@ -5,5 +5,6 @@
 #define GDISP_LLD_PIXELFORMAT			GDISP_PIXELFORMAT_MONO
 #define GDISP_SCREEN_WIDTH		        7
 #define GDISP_SCREEN_HEIGHT		        7
+#define ROTATE_180_IS_FLIP
 
 #include "emulator/emulator_driver_impl.h"
