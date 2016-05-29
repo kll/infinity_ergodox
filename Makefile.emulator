@@ -17,7 +17,7 @@
 	# See $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk for the list of variables
 	GFXLIB					= ../uGFX
 	#GFXBOARD				= Win32
-	GFXDRIVERS				= gdisp/TestStub
+	#GFXDRIVERS				= gdisp/TestStub
 	PROJECT				    = ergodox
 
 # ChibiOS settings
@@ -77,5 +77,6 @@ shaders: $(DSTSHADERS)
 $(BUILDDIR)/%shader : emulator/%shader
 	cp -f $< $@
 
-#include $(GFXLIB)/tools/gmake_scripts/library_ugfx.mk
+include drivers/gdisp/emulator_led/driver.mk
+include drivers/gdisp/emulator_lcd/driver.mk
 include $(GFXLIB)/tools/gmake_scripts/compiler_gcc.mk

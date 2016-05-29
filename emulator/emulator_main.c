@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <GLFW/glfw3.h>
 #include "keyboard_data.h"
 #include "shader.h"
+#include "emulator_driver.h"
 
 //#define DISPLAY_FPS
 
@@ -236,7 +237,7 @@ static void create_lcd_texture(void) {
     gdispGClear(lcd, White);
     glGenTextures(1, &lcd_texture);
     glBindTexture(GL_TEXTURE_2D, lcd_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, 128, 32, 0, GL_BGRA, GL_UNSIGNED_BYTE, gdispPixmapGetBits(lcd));
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, 128, 32, 0, GL_BGRA, GL_UNSIGNED_BYTE, getEmulatorPixmap(lcd));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -277,7 +278,7 @@ static void create_debug_texture(void) {
     gdispGClear(debug_display, background_color);
     glGenTextures(1, &debug_texture);
     glBindTexture(GL_TEXTURE_2D, debug_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT, 0, GL_BGRA, GL_UNSIGNED_BYTE, gdispPixmapGetBits(debug_display));
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, screen_dimensions.x, screen_dimensions.y, 0, GL_BGRA, GL_UNSIGNED_BYTE, getEmulatorPixmap(debug_display));
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -286,7 +287,7 @@ static void create_debug_texture(void) {
 static void create_debug_vertex_buffer(void) {
     GLfloat vertex_data[6 * 2];
     GLfloat* vertex = vertex_data;
-    vertex = create_quad_from_box(vertex, 0, 0, GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT);
+    vertex = create_quad_from_box(vertex, 0, 0, screen_dimensions.x, screen_dimensions.y);
     glGenBuffers(1, &debug_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, debug_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
@@ -300,7 +301,7 @@ static void create_frame_buffer(void) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, screen_dimensions.x, screen_dimensions.y, 0, GL_RGBA, GL_FLOAT, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glGenFramebuffers(1, &fbo);
@@ -364,7 +365,7 @@ int main(void) {
     glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint (GLFW_SRGB_CAPABLE, TRUE);
-    window = glfwCreateWindow(GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT,
+    window = glfwCreateWindow(screen_dimensions.x, screen_dimensions.y,
             "Ergodox Emulator", NULL, NULL);
     if(!window) {
         exit(EXIT_FAILURE);
@@ -388,9 +389,9 @@ int main(void) {
     create_frame_buffer();
 
     gfxInit();
-    lcd = gdispPixmapCreate(lcd_pixel_area_size.x, lcd_pixel_area_size.y);
-    led = gdispPixmapCreate(led_size.x, led_size.y);
-    debug_display = gdispPixmapCreate(GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT);
+    lcd = gdispGetDisplay(0);
+    led = gdispGetDisplay(1);
+    debug_display = gdispPixmapCreate(screen_dimensions.x, screen_dimensions.y);
 
     create_lcd_texture();
     create_debug_texture();
@@ -429,9 +430,9 @@ void lcd_backlight_hal_color(uint16_t r, uint16_t g, uint16_t b) {
 
 static void setup_view_projection(void) {
     const GLfloat left = 0;
-    const GLfloat right = GDISP_SCREEN_WIDTH;
+    const GLfloat right = screen_dimensions.x;
     const GLfloat top = 0;
-    const GLfloat bottom = GDISP_SCREEN_HEIGHT;
+    const GLfloat bottom = screen_dimensions.y;
     const GLfloat far_val = 10.0f;
     const GLfloat near_val = -10.0f;
     const GLfloat a = 2.0f / (right-left);
@@ -533,7 +534,7 @@ static void draw_lcd_texture(GLuint offset, color_t color) {
     );
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, lcd_texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, lcd_pixel_area_size.x, lcd_pixel_area_size.y, GL_BGRA, GL_UNSIGNED_BYTE, gdispPixmapGetBits(lcd));
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, lcd_pixel_area_size.x, lcd_pixel_area_size.y, GL_BGRA, GL_UNSIGNED_BYTE, getEmulatorPixmap(lcd));
     glUniform1i(current_program->texture_sampler_location, 0);
     float r = RED_OF(color) / 255.0f;
     float g = GREEN_OF(color) / 255.0f;
@@ -609,6 +610,10 @@ static void draw_leds(void) {
             continue;
         int row = i / led_size.x;
         int col = i - row * led_size.x;
+        if (gdispGGetOrientation(led) == GDISP_ROTATE_180) {
+            col = led_size.x - col - 1;
+            row = led_size.y - row - 1;
+        }
         int luma = LUMA_OF(gdispGGetPixelColor(led, col, row));
 
         glUniform1f(current_program->intensity_location, luma / 255.0f);
@@ -646,7 +651,7 @@ void draw_debug(void) {
     );
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, debug_texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT, GL_BGRA, GL_UNSIGNED_BYTE, gdispPixmapGetBits(debug_display));
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, screen_dimensions.x, screen_dimensions.y, GL_BGRA, GL_UNSIGNED_BYTE, gdispPixmapGetBits(debug_display));
     glUniform1i(current_program->texture_sampler_location, 0);
     float r = RED_OF(background_color) / 255.0f;
     float g = GREEN_OF(background_color) / 255.0f;

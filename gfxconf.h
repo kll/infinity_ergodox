@@ -132,9 +132,7 @@
 #ifndef EMULATOR
 #define GDISP_DRIVER_LIST                            GDISPVMT_ST7565_ERGODOX, GDISPVMT_IS31FL3731C_ERGODOX
 #else
-#define GDISP_PIXELFORMAT                            GDISP_PIXELFORMAT_RGB888
-#define GDISP_SCREEN_WIDTH                           1024
-#define GDISP_SCREEN_HEIGHT                          768
+#define GDISP_DRIVER_LIST                            GDISPVMT_EMULATOR_LCD_ERGODOX, GDISPVMT_EMULATOR_LED_ERGODOX
 #endif
 
     #ifdef GDISP_DRIVER_LIST

@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef EMULATOR_KEYBOARD_DATA_H_
 #define EMULATOR_KEYBOARD_DATA_H_
 
+point screen_dimensions = { 1024, 768 };
+
 typedef struct {
     point pos;
     float size;
