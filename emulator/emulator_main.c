@@ -300,7 +300,7 @@ static void create_frame_buffer(void) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glGenFramebuffers(1, &fbo);
@@ -693,6 +693,7 @@ void draw_emulator(void) {
     }
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glDisable(GL_FRAMEBUFFER_SRGB);
+    //glEnable(GL_FRAMEBUFFER_SRGB);
     glClearColor(
        RED_OF(background_color) / 255.0f,
        GREEN_OF(background_color) / 255.0f,

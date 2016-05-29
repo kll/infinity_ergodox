@@ -1,8 +1,12 @@
 #version 330 core
 
 uniform sampler2D fbo_texture;
-varying vec2 f_texcoord;
+in vec2 f_texcoord;
+out vec3 color;
+
+float exposure = 1.0;
+float gamma = 2.2;
 
 void main(void) {
-  gl_FragColor = texture2D(fbo_texture, f_texcoord);
+	color = texture2D(fbo_texture, f_texcoord).rgb;
 }

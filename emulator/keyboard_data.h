@@ -137,6 +137,6 @@ static const GLfloat lcd_uv_data[] = {
         0.0f, 1.0f,
 };
 
-static const int led_radius = 128;
+static const int led_radius = 256;
 
 #endif /* EMULATOR_KEYBOARD_DATA_H_ */
