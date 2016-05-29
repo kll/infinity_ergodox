@@ -45,11 +45,19 @@ typedef struct {
     GLuint pos_location;
 }program_t;
 
+typedef struct {
+    GLuint program_id;
+    GLuint vcoord_location;
+    GLuint fbo_texture_location;
+}postprocess_t;
+
 static program_t keyboard_program;
 static program_t lcd_program;
 static program_t led_program;
 static program_t debug_program;
 static program_t* current_program;
+
+static postprocess_t postprocess_program;
 
 static GLuint keyboard_vertex_buffer;
 static GLuint key_inner_vertex_buffer;
@@ -65,7 +73,12 @@ static GLuint debug_vertex_buffer;
 static GLuint lcd_texture;
 static GLuint debug_texture;
 
+static GLuint fbo_texture;
+static GLuint fbo;
+static GLuint fbo_vertices;
+
 static color_t lcd_base_color;
+
 
 
 static const int num_keys = sizeof(keys) / sizeof(keyinfo_t);
@@ -279,11 +292,40 @@ static void create_debug_vertex_buffer(void) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
 }
 
+static void create_frame_buffer(void) {
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &fbo_texture);
+    glBindTexture(GL_TEXTURE_2D, fbo_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, GDISP_SCREEN_WIDTH, GDISP_SCREEN_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    GLfloat fbo_vertices_data[] = {
+      -1, -1,
+       1, -1,
+      -1,  1,
+       1,  1,
+    };
+    glGenBuffers(1, &fbo_vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, fbo_vertices);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fbo_vertices_data), fbo_vertices_data, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 static void load_shaders(void) {
     keyboard_program.program_id = load_program("keyboard.vertexshader", "keyboard.fragmentshader");
     lcd_program.program_id = load_program("lcd.vertexshader", "lcd.fragmentshader");
     led_program.program_id = load_program("led.vertexshader", "led.fragmentshader");
     debug_program.program_id = load_program("debug.vertexshader", "debug.fragmentshader");
+    postprocess_program.program_id = load_program("postprocess.vertexshader", "postprocess.fragmentshader");
 
     GLuint program_id = keyboard_program.program_id;
     keyboard_program.view_projection_location = glGetUniformLocation(program_id, "view_projection");
@@ -307,6 +349,11 @@ static void load_shaders(void) {
     debug_program.keyboard_position_location = -1;
     debug_program.texture_sampler_location = glGetUniformLocation(program_id, "texture_sampler");
     debug_program.element_color_location = glGetUniformLocation(program_id, "element_color");
+
+    program_id = postprocess_program.program_id;
+    postprocess_program.vcoord_location = glGetAttribLocation(program_id, "v_coord");
+    postprocess_program.fbo_texture_location = glGetUniformLocation(program_id, "fbo_texture");
+
 }
 
 int main(void) {
@@ -338,6 +385,8 @@ int main(void) {
     create_led_vertex_buffer();
     create_debug_vertex_buffer();
 
+    create_frame_buffer();
+
     gfxInit();
     lcd = gdispPixmapCreate(lcd_pixel_area_size.x, lcd_pixel_area_size.y);
     led = gdispPixmapCreate(led_size.x, led_size.y);
@@ -354,8 +403,8 @@ int main(void) {
     // Initialize and clear the display
     visualizer_init();
 
-    uint8_t default_layer_state = 0x8;
-    uint8_t layer_state = 0x2;
+    uint8_t default_layer_state = 0;
+    uint8_t layer_state = 0;
     uint8_t leds = 0;
 
     while (!glfwWindowShouldClose(window)) {
@@ -610,6 +659,29 @@ void draw_debug(void) {
     glDisable(GL_BLEND);
 }
 
+void draw_post_process(void) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glEnable(GL_FRAMEBUFFER_SRGB);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(postprocess_program.program_id);
+    glBindTexture(GL_TEXTURE_2D, fbo_texture);
+    glUniform1i(postprocess_program.fbo_texture_location, /*GL_TEXTURE*/0);
+    glEnableVertexAttribArray(postprocess_program.vcoord_location);
+
+    glBindBuffer(GL_ARRAY_BUFFER, fbo_vertices);
+    glVertexAttribPointer(
+      postprocess_program.vcoord_location,  // attribute
+      2,                  // number of elements per vertex, here (x,y)
+      GL_FLOAT,           // the type of each element
+      GL_FALSE,           // take our values as-is
+      0,                  // no extra data between each position
+      0                   // offset of first element
+    );
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDisableVertexAttribArray(postprocess_program.vcoord_location);
+}
 
 void draw_emulator(void) {
     static double last = 0.0;
@@ -618,9 +690,9 @@ void draw_emulator(void) {
     if (!glfwGetCurrentContext()) {
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
-        glEnable(GL_FRAMEBUFFER_SRGB);
     }
-
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glDisable(GL_FRAMEBUFFER_SRGB);
     glClearColor(
        RED_OF(background_color) / 255.0f,
        GREEN_OF(background_color) / 255.0f,
@@ -667,8 +739,8 @@ void draw_emulator(void) {
     (void) after_draw_lcd;
     (void) after_draw_leds;
 #endif
-
     gdispSetDisplay(lcd);
+    draw_post_process();
     glfwSwapBuffers(window);
     last = start_draw;
 }
