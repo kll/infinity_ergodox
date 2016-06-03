@@ -21,23 +21,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 const uint8_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     KEYMAP(  // layer 0 : default
         // left hand
-        EQL, 1,   2,   3,   4,   5,   ESC,
-        BSLS,Q,   W,   E,   R,   T,   FN1,
-        TAB, A,   S,   D,   F,   G,
-        LSFT,Z,   X,   C,   V,   B,   FN0,
-        LGUI,GRV, BSLS,LEFT,RGHT,
-                                      LCTL,LALT,
-                                           HOME,
-                                 BSPC,DEL, END,
+        BSLS,    1,    2,    3,    4,    5,  ESC,
+         TAB,    Q,    W,    E,    R,    T,  FN1,
+         EQL,    A,    S,    D,    F,    G,
+        LSFT,    Z,    X,    C,    V,    B,  FN0,
+        LCTL, LGUI, LALT, RALT, RCTL,
+                                      HOME,  END,
+                                            PGUP,
+                                 FN4,  FN5, PGDN,
         // right hand
-             FN2, 6,   7,   8,   9,   0,   MINS,
-             LBRC,Y,   U,   I,   O,   P,   RBRC,
-                  H,   J,   K,   L,   SCLN,QUOT,
-             FN0, N,   M,   COMM,DOT, SLSH,RSFT,
-                       LEFT,DOWN,UP,  RGHT,RGUI,
-        RALT,RCTL,
-        PGUP,
-        PGDN,ENT, SPC
+         FN2,    6,    7,    8,    9,    0, MINS,
+        LBRC,    Y,    U,    I,    O,    P, RBRC,
+                 H,    J,    K,    L, SCLN, QUOT,
+         FN0,    N,    M, COMM,  DOT, SLSH, RSFT,
+                    LEFT, DOWN,   UP, RGHT,GRAVE,
+        LGUI,  APP,
+        PSCR,
+         INS,  ENT, SPC
     ),
 
     KEYMAP(  // layer 1 : function and symbol keys
@@ -108,4 +108,6 @@ const uint16_t fn_actions[] = {
     ACTION_LAYER_SET(2, ON_PRESS),                  // FN1 - set Layer2
     ACTION_LAYER_TOGGLE(3),                         // FN2 - toggle Layer3 aka Numpad layer
     ACTION_LAYER_SET(0, ON_PRESS),                  // FN3 - set Layer0
+    ACTION_MODS_TAP_KEY(MOD_LALT, KC_BSPC),         // FN4 - left alt or tap backspace
+    ACTION_MODS_TAP_KEY(MOD_LCTL, KC_DEL),          // FN5 - left control or tap delete
 };
