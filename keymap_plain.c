@@ -25,7 +25,7 @@ const uint8_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
          TAB,    Q,    W,    E,    R,    T,  FN1,
          EQL,    A,    S,    D,    F,    G,
         LSFT,    Z,    X,    C,    V,    B,  FN0,
-        LCTL, LGUI, LALT, RALT, RCTL,
+         FN6,  FN7,  FN8,  FN9, FN10,
                                       HOME,  END,
                                             PGUP,
                                  FN4,  FN5, PGDN,
@@ -42,14 +42,14 @@ const uint8_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     KEYMAP(  // layer 1 : function and symbol keys
         // left hand
-        TRNS,F1,  F2,  F3,  F4,  F5,  F11,
-        TRNS,TRNS,TRNS,TRNS,TRNS,TRNS,FN3,
-        TRNS,TRNS,TRNS,TRNS,TRNS,TRNS,
-        TRNS,TRNS,TRNS,TRNS,TRNS,TRNS,TRNS,
-        TRNS,TRNS,TRNS,TRNS,TRNS,
-                                      TRNS,TRNS,
-                                           TRNS,
-                                 TRNS,TRNS,TRNS,
+        TRNS,   F1,   F2,   F3,   F4,   F5,  F11,
+        TRNS, TRNS, TRNS, TRNS, TRNS, TRNS,  FN3,
+        TRNS, TRNS, TRNS, TRNS, TRNS, TRNS,
+        TRNS, TRNS, TRNS, TRNS, TRNS, TRNS, TRNS,
+        LCTL, LGUI, LALT, RALT, RCTL,
+                                      TRNS, TRNS,
+                                            TRNS,
+                                TRNS, TRNS, TRNS,
         // right hand
              F12, F6,  F7,  F8,  F9,  F10, TRNS,
              TRNS,TRNS,TRNS,TRNS,TRNS,TRNS,TRNS,
@@ -104,10 +104,15 @@ const uint8_t keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 };
 const uint16_t fn_actions[] = {
-    ACTION_LAYER_TAP_TOGGLE(1),                     // FN0 - to Layer1
-    ACTION_LAYER_TAP_TOGGLE(2),                     // FN1 - to Layer2
-    ACTION_LAYER_TOGGLE(3),                         // FN2 - toggle Layer3 aka Numpad layer
-    ACTION_LAYER_SET(0, ON_PRESS),                  // FN3 - set Layer0
-    ACTION_MODS_TAP_KEY(MOD_LALT, KC_BSPC),         // FN4 - left alt or tap backspace
-    ACTION_MODS_TAP_KEY(MOD_LCTL, KC_DEL),          // FN5 - left control or tap delete
+    ACTION_LAYER_TAP_TOGGLE(1),                     // FN0  - to Layer1
+    ACTION_LAYER_TAP_TOGGLE(2),                     // FN1  - to Layer2
+    ACTION_LAYER_TOGGLE(3),                         // FN2  - toggle Layer3 aka Numpad layer
+    ACTION_LAYER_SET(0, ON_PRESS),                  // FN3  - set Layer0
+    ACTION_MODS_TAP_KEY(MOD_LALT, KC_BSPC),         // FN4  - left alt or tap backspace
+    ACTION_MODS_TAP_KEY(MOD_LCTL, KC_DEL),          // FN5  - left control or tap delete
+    ACTION_MODS_KEY(MOD_LCTL | MOD_LGUI, KC_F4),    // FN6  - close current virtual desktop
+    ACTION_MODS_KEY(MOD_LCTL | MOD_LGUI, KC_D),     // FN7  - create new virtual desktop
+    ACTION_MODS_KEY(MOD_LGUI, KC_TAB),              // FN8  - enter task view
+    ACTION_MODS_KEY(MOD_LCTL | MOD_LGUI, KC_LEFT),  // FN9  - Switch virtual desktop left
+    ACTION_MODS_KEY(MOD_LCTL | MOD_LGUI, KC_RGHT),  // FN10 - Switch virtual desktop right
 };
